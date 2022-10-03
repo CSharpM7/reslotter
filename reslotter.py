@@ -1,4 +1,4 @@
-#Original code by Jozz <https://github.com/jozz024/ssbu-skin-reslotter>
+#Original code by BluJay <https://github.com/blu-dev> and Jozz <https://github.com/jozz024/ssbu-skin-reslotter>
 import os
 import shutil
 import sys
