@@ -1,5 +1,7 @@
 # ReslotterGUI
 
+![r](https://imgur.com/haexBFf.png)
+
 A GUI tool for reslotting mods. Requires python 3.9+. Run `reslotterGUI.py`, not `reslotter.py`. Download via the green code button located on the repository (https://github.com/CSharpM7/reslotter)
 
 You'll need to download a "Hashes_all.txt" file from https://github.com/ultimate-research/archive-hashes/blob/master/Hashes_all, and place it here.
