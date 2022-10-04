@@ -9,6 +9,8 @@ import shutil
 import webbrowser
 import json
 
+import reslotter
+
 root = Tk()
 root.title("reslotterGUI")
 root.withdraw()
@@ -16,15 +18,15 @@ root.IsSharp = True
 root.maxSlots = 11
 
 # Check if reslotter is installed
-package_name = 'reslotter'
-import importlib.util
-package = importlib.util.find_spec(package_name)
-if package is None:
-    messagebox.showerror(root.title,"reslotter.py does not exist in this directory")
-    root.destroy()
-    sys.exit("User does not have "+package_name)
+#package_name = 'reslotter'
+#import importlib.util
+#package = importlib.util.find_spec(package_name)
+#if package is None:
+#    messagebox.showerror(root.title,"reslotter.py does not exist in this directory")
+#    root.destroy()
+#    sys.exit("User does not have "+package_name)
 
-import reslotter
+#from . import reslotter
 
 
 #Config options
