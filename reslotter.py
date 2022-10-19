@@ -179,4 +179,3 @@ if __name__ == "__main__":
         main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6],sys.argv[7],sys.argv[8])
     except IndexError:
         usage()
-        #main(r"D:\Users\Ryan\Downloads\fighter_ganondorf_all_slots_twilight_king_4a8bf\Twilight King", "Hashes_all.txt", "ganon", "c00", "c01", r"D:\Users\Ryan\Downloads\fighter_ganondorf_all_slots_twilight_king_4a8bf\Twilight King_c01", "Y")

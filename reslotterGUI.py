@@ -17,18 +17,6 @@ root.withdraw()
 root.IsSharp = True
 root.maxSlots = 11
 
-# Check if reslotter is installed
-#package_name = 'reslotter'
-#import importlib.util
-#package = importlib.util.find_spec(package_name)
-#if package is None:
-#    messagebox.showerror(root.title,"reslotter.py does not exist in this directory")
-#    root.destroy()
-#    sys.exit("User does not have "+package_name)
-
-#from . import reslotter
-
-
 #Config options
 import configparser
 config = configparser.ConfigParser()
@@ -185,8 +173,6 @@ def ReslotPopUp():
 		comboEntry.pack()
 
 		textSource = "c0"+str(i)
-		if (i>=8):
-			textSource = "(add) "+textSource
 
 		labelSource = Label(comboEntry,text=textSource)
 		labelSource.pack(side = LEFT)
@@ -199,7 +185,9 @@ def ReslotPopUp():
 		values = [""]
 		for m in range(root.maxSlots):
 			textSlot = "c0"+str(m)
-			if (m>=8):
+			if (m>=10):
+				textSlot = "+c"+str(m)
+			elif (m>=8):
 				textSlot = "+"+textSlot
 			values.append(textSlot)
 
