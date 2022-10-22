@@ -206,6 +206,7 @@ def ReslotPopUp():
 		#only use the sources provided
 		textSource = "c0"+str(i)
 		if (not textSource in root.slots) and (root.exclusive):
+			root.comboTargets.append(None)
 			continue
 		if (i>=8):
 			textSource = "+"+textSource
@@ -270,7 +271,11 @@ def Reslot():
 	sources=[]
 	targets=[]
 	usesAdditional=False
-	for i in range(8):
+
+	#for each potential source, check if the UI exists for it. Then pair them together by source:target
+	for i in range(root.maxSources):
+		if (root.comboTargets[i] == None):
+			continue
 		sources.append("c0"+str(i))
 		targetText = root.comboTargets[i].get()
 		targets.append(targetText.replace("+",""))
@@ -295,9 +300,10 @@ def Reslot():
 	if (not exclude):
 		shutil.copy(root.searchDir,targetDir)
 
-	for i in range(8):
+	for i in range(len(sources)):
 		source = sources[i]
 		target = targets[i]
+		print(source+"/"+target)
 		if (target == ""):
 			continue
 		elif (source==target and clone==False):
