@@ -1,6 +1,6 @@
 # ReslotterGUI
 
-![r](https://imgur.com/haexBFf.png)
+![r](https://i.imgur.com/Esyp5Jo.png)
 
 A GUI tool for reslotting mods. Requires python 3.9+. This will reslot anything under the folders `fighter`,`sound`,`ui`, and `effects` (if applicable )
 
