@@ -14,8 +14,9 @@ import reslotter
 root = Tk()
 root.title("reslotterGUI")
 root.withdraw()
-root.IsSharp = True
+root.maxSources = 8
 root.maxSlots = 11
+root.exclusive = True
 
 #Config options
 import configparser
@@ -60,12 +61,14 @@ def SetsearchDir():
 
 #make sure that it is a validated search folder, otherwise quit
 def IsValidSearch():
-    subfolders = [f.path for f in os.scandir(root.searchDir) if f.is_dir()]
-    for dirname in list(subfolders):
-        if (os.path.basename(dirname) == "fighter"):
-            root.modType = "fighter"
-            return True
-    return False
+	whitelist = ["fighter","sound","ui"]
+	subfolders = [f.path for f in os.scandir(root.searchDir) if f.is_dir()]
+	for dirname in list(subfolders):
+		for w in list(whitelist):
+			folderName = os.path.basename(dirname) 
+			if (folderName.lower() == w.lower()):
+				return True
+	return False
         
 
 #Set Search Dir
@@ -98,44 +101,87 @@ def InitSearch():
     with open('config.ini', 'w+') as configfile:
             config.write(configfile)
 
+root.fighters= []
+root.slots = []
+
 def GetFightersFromFolders(folders):
 	fighters = []
-	for f in folders:
-		fighter = os.path.basename(f)
+	for folder in folders:
+		fighter = os.path.basename(folder)
 		if (fighter != "common"):
 			fighters.append(fighter)
+			#find slots
+			modelfolders = [f.path for f in os.scandir(folder+"/model") if f.is_dir()]
+			for m in modelfolders:
+				slots = [f.path for f in os.scandir(m) if f.is_dir()]
+				for s in slots:
+					slot = os.path.basename(s)
+					if not slot in root.slots:
+						root.slots.append(slot)
+	return fighters
+
+def find_nth(haystack, needle, n):
+    start = haystack.find(needle)
+    while start >= 0 and n > 1:
+        start = haystack.find(needle, start+len(needle))
+        n -= 1
+    return start
+
+def GetFightersFromFiles(folders):
+	fighters = []
+	for f in folders:
+		if (os.path.basename(f) == "replace" or os.path.basename(f) == "replace_patch"):
+			fighterfolders = [f.path for f in os.scandir(f+"/chara") if f.is_dir()]
+			return GetFightersFromFiles(fighterfolders)
+
+		for (dirpath, dirnames, filenames) in os.walk(f):
+			for filename in filenames:
+				#we need the last and second to last _
+				unders = filename.count("_")
+				firstUnder = find_nth(filename,"_",unders-1)
+				secondUnder = find_nth(filename,"_",unders)
+				fighter = filename[firstUnder+1:secondUnder]
+				slot = filename[secondUnder+1:filename.index(".")]
+				if (not "c" in slot):
+					slot = "c"+slot
+
+				if not fighter in fighters:
+					fighters.append(fighter)
+				if not slot in root.slots:
+					root.slots.append(slot)
+
 	return fighters
 	
-root.fighters= []
 
 def SetFighter():
 	fighters = []
 	fighterFolder = root.searchDir+"/fighter"
 	uiFolder = root.searchDir+"/ui"
-	soundFolder = root.searchDir+"/sound/bank/fighter"
+	soundFolder = root.searchDir+"/sound/bank"
 
-	fighterfolders = [f.path for f in os.scandir(fighterFolder) if f.is_dir()]
 	#If no fighter model, check for ui
-	if (len(fighterfolders)==0):
-		uifolders = [f.path for f in os.scandir(uiFolder) if f.is_dir()]
+	if (not os.path.isdir(fighterFolder)):
 		#if no ui, check for sound
-		if (len(subfolders)==0):
-			soundfolders = [f.path for f in os.scandir(soundFolder) if f.is_dir()]
-			if (len(subfolders)==0):
+		if (not os.path.isdir(uiFolder)):
+			if (not os.path.isdir(soundFolder)):
 				messagebox.showerror(root.title(),"This mod has no fighter folders")
 				root.destroy()
 				sys.exit("no fighter")
 			else:
-				fighters = GetFightersFromFolders(soundfolders)
+				soundfolders = [f.path for f in os.scandir(soundFolder) if f.is_dir()]
+				fighters = GetFightersFromFiles(soundfolders)
 		else:
-			fighters = GetFightersFromFolders(uifolders)
+			uifolders = [f.path for f in os.scandir(uiFolder) if f.is_dir()]
+			fighters = GetFightersFromFiles(uifolders)
 	else:
+		fighterfolders = [f.path for f in os.scandir(fighterFolder) if f.is_dir()]
 		fighters = GetFightersFromFolders(fighterfolders)
 
 	root.fighters = fighters
 
 	if ("eflame" in fighters or "elight" in fighters):
 		messagebox.showwarning(root.title(),"Heads up, Pyra and Mythra cannot use additional slots. You might have to double check their UI files, too")
+
 
 root.popup = None
 def ReslotPopUp():
@@ -156,7 +202,14 @@ def ReslotPopUp():
 	
 	root.comboSources = []
 	root.comboTargets = []
-	for i in range(8):
+	for i in range(root.maxSources):
+		#only use the sources provided
+		textSource = "c0"+str(i)
+		if (not textSource in root.slots) and (root.exclusive):
+			continue
+		if (i>=8):
+			textSource = "+"+textSource
+
 		strSource = StringVar()
 		strTarget = StringVar()
 
@@ -172,7 +225,6 @@ def ReslotPopUp():
 		comboEntry = Frame(frameCombos)
 		comboEntry.pack()
 
-		textSource = "c0"+str(i)
 
 		labelSource = Label(comboEntry,text=textSource)
 		labelSource.pack(side = LEFT)
@@ -256,10 +308,7 @@ def Reslot():
 		print("Change "+fighter+"'s "+source+" mod to "+target)
 
 		try:
-			if (root.IsSharp):
-				reslotter.main(subcall[1],subcall[2],subcall[3],subcall[4],subcall[5],subcall[6],subcall[7],subcall[8])
-			else:
-				reslotter.main(subcall[1],subcall[2],subcall[3],subcall[4],subcall[5],subcall[6])
+			reslotter.main(subcall[1],subcall[2],subcall[3],subcall[4],subcall[5],subcall[6],subcall[7],subcall[8])
 			succeeded=True
 			if (not usesAdditional):
 				currentConfig = open(targetDir+"/config.json")

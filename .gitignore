@@ -54,3 +54,7 @@ coverage.xml
 docs/_build/
 
 __init__.py
+
+reslotter.zip
+
+__init__.spec
