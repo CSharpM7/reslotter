@@ -1,0 +1,1 @@
+pyinstaller --noconfirm --onefile --console --add-data "D:/Users/Ryan/Documents/SmashClub/hack/reslotter/repo/reslotter.py;."  "D:/Users/Ryan/Documents/SmashClub/hack/reslotter/repo/reslotterGUI.py"
