@@ -1,9 +1,10 @@
 #Original code by BluJay <https://github.com/blu-dev> and Jozz <https://github.com/jozz024/ssbu-skin-reslotter>
+#Modified by Coolsonickirby to get it to work with dir addition
 import os
 import shutil
 import sys
 import json
-
+import re
 
 def usage():
     print("usage: python reslotter.py <mod_directory> <hashes_file> <fighter_name> <current_alt> <target_alt> <out_directory> <exclude other alts (Y/N)> <create config (Y/N)>")
@@ -38,50 +39,6 @@ def find_fighter_files(mod_directory):
                         toAppend = fix_windows_path(full_file_path, True).replace(mod_directory.replace("\\","/")+"/","")
                         all_files.append(toAppend)
     return all_files
-
-def get_all_needed_files(config, known_files, fighter_name, current_alt, target_alt):
-    # make two varibles, one that holds the new slot's dir info, and one that holds the old slot's dir info
-    new_dir_info = f"fighter/{fighter_name}/{target_alt}"
-    old_dir_info = f"fighter/{fighter_name}/{current_alt}"
-    new_config = {}
-    # add the "new_dir_infos" config option and fill it with the new dir info
-    new_config["new_dir_infos"] = [new_dir_info, ]
-
-    # add the "new_dir_infos_base" config option and fill it with all of the dir infos we can source back to the og slot
-    new_config["new-dir-infos-base"] = {
-        f"{new_dir_info}/cmn": f"{old_dir_info}/cmn",
-        f"{new_dir_info}/camera": f"{old_dir_info}/camera"
-    }
-
-    new_config["share-to-vanilla"] = {}
-    # now get every file that correlates to the fighters old slot
-    for file in known_files:
-        if config["new_dir_files"][new_dir_info].__contains__(file):
-            continue
-        if file.startswith(f"fighter/{fighter_name}/"):
-            lookfor = f"/{current_alt}/"
-            replace = f"/{target_alt}/"
-            if file.__contains__(lookfor) and file.__contains__("."):
-                new_file = file.replace(lookfor, replace)
-                config["new_dir_files"][new_dir_info].append(new_file)
-                new_config["share-to-vanilla"][file] = new_file
-        elif file.startswith("sound/bank/fighter"):
-            lookfor = f"{fighter_name}_{current_alt}"
-            replace = f"{fighter_name}_{target_alt}"
-            if file.__contains__(lookfor):
-                new_file = file.replace(lookfor, replace)
-                config["new_dir_files"][new_dir_info].append(new_file)
-                new_config["share-to-vanilla"][file] = new_file
-            lookfor = f"{fighter_name}_cheer_{current_alt}"
-            replace = f"{fighter_name}_cheer_{target_alt}"
-            if file.__contains__(lookfor):
-                new_file = file.replace(lookfor, replace)
-                config["new_dir_files"][new_dir_info].append(new_file)
-                new_config["share-to-vanilla"][file] = new_file
-
-    config["new_dir_files"][new_dir_info] = sorted(config["new_dir_files"][new_dir_info])
-    new_config.update(config)
-    return new_config
 
 def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, out_dir, fighter_name,exclude):
     reslotted_files = []
@@ -122,7 +79,7 @@ def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, 
                 makeDirsFromFile(os.path.join(out_dir, new_file))
                 shutil.copy(os.path.join(mod_directory, files), os.path.join(out_dir, new_file))
                 reslotted_files.append(new_file)
-        elif files.startswith(f"ffect/fighter"):
+        elif files.startswith(f"effect/fighter"):
             files = "e"+files
             lookfor = f"{current_alt.strip('c')}"
             replace = f"{target_alt.strip('c')}"
@@ -132,30 +89,107 @@ def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, 
             shutil.copy(os.path.join(mod_directory, files), os.path.join(out_dir, new_file))
             reslotted_files.append(new_file)
 
-        #print(files)
+    existing_files.extend(reslotted_files)
+    if 7 < int(target_alt.strip("c")):
+        add_new_slot(f"fighter/{fighter_name}", current_alt, target_alt)
+    else:
+        add_missing_files(reslotted_files, fighter_name, target_alt)
+
     return reslotted_files, fighter_files
 
-def make_config(reslotted_files, known_files, fighter_name, current_alt, target_alt):
+# Previous name of function was make_config
+def add_missing_files(reslotted_files, fighter_name, target_alt):
     # make a variable that holds the dirinfo path for the new slot
     new_dir_info = f"fighter/{fighter_name}/{target_alt}"
     # we have to do config separately if it's an added slot because those require extra config options
-    config = {
-        "new_dir_files": {
-            new_dir_info: []
-        }
-    }
+
+    if new_dir_info not in resulting_config["new-dir-files"]:
+        resulting_config["new-dir-files"][new_dir_info] = []
 
     for file in reslotted_files:
         if file not in known_files:
-            config["new_dir_files"][new_dir_info].append(file)
-    return config
+            resulting_config["new-dir-files"][new_dir_info].append(file)
+
+def add_new_slot(dir_info, source_slot, new_slot):
+    folders = dir_info.split("/")
+    target_dir = dirs_data
+
+    for folder in folders:
+        target_dir = target_dir["directories"][folder]
+
+    if source_slot in target_dir["directories"]:
+        source_slot_dir = target_dir["directories"][source_slot]
+        source_slot_path = "%s/%s" % ((dir_info, source_slot))
+        new_slot_dir_path = "%s/%s" % ((dir_info, new_slot))
+
+        resulting_config["new-dir-infos"].append(new_slot_dir_path)
+
+        # Deal with files
+        addFilesToDirInfo(new_slot_dir_path, source_slot_dir["files"], new_slot)
+        addSharedFiles(source_slot_dir["files"], source_slot, new_slot)
+
+        for dir in source_slot_dir["directories"]:
+            source_slot_base = f"{source_slot_path}/{dir}"
+            new_slot_base = f"{new_slot_dir_path}/{dir}"
+            resulting_config["new-dir-infos-base"][new_slot_base] = source_slot_base
+
+    for dir in target_dir["directories"]:
+        target_obj = target_dir["directories"][dir]
+        if source_slot in target_obj["directories"]:
+            source_slot_dir = target_obj["directories"][source_slot]
+            source_slot_path = f"{dir_info}/{dir}/{source_slot}"
+            new_slot_dir_path = f"{dir_info}/{dir}/{new_slot}"
+
+            resulting_config["new-dir-infos"].append(new_slot_dir_path)
+
+            # Deal with files
+            addFilesToDirInfo(new_slot_dir_path, source_slot_dir["files"], new_slot)
+            addSharedFiles(source_slot_dir["files"], source_slot, new_slot)
+
+            # Deal with directories
+            for child_dir in source_slot_dir["directories"]:
+                source_slot_base = f"{source_slot_path}/{child_dir}"
+                new_slot_base = f"{new_slot_dir_path}/{child_dir}"
+                resulting_config["new-dir-infos-base"][new_slot_base] = source_slot_base
+
+
+def addFilesToDirInfo(dir_info, files, target_color):
+    if dir_info not in resulting_config["new-dir-files"]:
+        resulting_config["new-dir-files"][dir_info] = []
+
+    for index in files:
+        file_path = file_array[index]
+        if file_path.startswith("0x"):
+            continue
+        new_file_path = re.sub(r"c0[0-9]", target_color, file_path)
+        if new_file_path in resulting_config["new-dir-files"][dir_info]:
+            continue
+        resulting_config["new-dir-files"][dir_info].append(new_file_path)
+
+def addSharedFiles(src_files, source_color, target_color):
+    used_files = []
+
+    for index in src_files:
+        file_path = file_array[index]
+        if file_path.startswith("0x"):
+            continue
+        if file_path.replace(r"/c0[0-9]/", source_color) in used_files:
+            continue
+        used_files.append(file_path)
+
+        new_file_path = re.sub(r"c0[0-9]", target_color, file_path)
+        if new_file_path in existing_files:
+            continue
+
+        if file_path not in resulting_config["share-to-vanilla"]:
+            resulting_config["share-to-vanilla"][file_path] = []
+        
+        if new_file_path not in resulting_config["share-to-vanilla"][file_path]:
+            resulting_config["share-to-vanilla"][file_path].append(new_file_path)
 
 def main(mod_directory, hashes_file, fighter_name, current_alt, target_alt, out_dir,exclude,createConfig):
-    # get all of the files in SSBU's Filesystem
-    known_files = set(map(lambda x: x.strip(), open(hashes_file, 'r').readlines()))
     # get all of the files the mod modifies
     fighter_files = find_fighter_files(mod_directory)
-
 
     # make the out directory if it doesn't exist
     if not os.path.exists(out_dir):
@@ -164,14 +198,36 @@ def main(mod_directory, hashes_file, fighter_name, current_alt, target_alt, out_
     reslotted_files, fighter_files = reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, out_dir, fighter_name,exclude)
 
     #create configJson file
-    if (createConfig=="Y"):
-        config = make_config(reslotted_files,known_files,fighter_name,current_alt,target_alt)
+    # if (createConfig=="Y"):
+    #     config = make_config(reslotted_files,known_files,fighter_name,current_alt,target_alt)
 
-        writeLocation = out_dir + '/config.json'
-        writeFile = open(writeLocation,'w')
-        writeFile.close()
-        with open(writeLocation, 'w', encoding='utf-8') as f:
-            json.dump(config, f, ensure_ascii=False, indent=4)
+    #     writeLocation = out_dir + '/config.json'
+    #     writeFile = open(writeLocation,'w')
+    #     writeFile.close()
+    #     with open(writeLocation, 'w', encoding='utf-8') as f:
+    #         json.dump(config, f, ensure_ascii=False, indent=4)
+
+def init(hashes_file):
+    # load dir_info_with_files_trimmed.json for dir addition config gen
+    global dirs_data
+    global file_array
+    global existing_files
+    global resulting_config
+    resulting_config = {
+        "new-dir-infos": [],
+        "new-dir-infos-base": {},
+        "share-to-vanilla": {},
+        "new-dir-files": {}
+    }
+    existing_files = []
+    # get all of the files in SSBU's Filesystem
+    global known_files
+    known_files = set(map(lambda x: x.strip(), open(hashes_file, 'r').readlines()))
+    with open("dir_info_with_files_trimmed.json", "r") as f:
+        res = json.load(f)
+        dirs_data = res["dirs"]
+        file_array = res["file_array"]
+        f.close()
 
 
 if __name__ == "__main__":
