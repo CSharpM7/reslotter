@@ -91,7 +91,12 @@ def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, 
 
     existing_files.extend(reslotted_files)
     if 7 < int(target_alt.strip("c")):
-        add_new_slot(f"fighter/{fighter_name}", current_alt, target_alt)
+        current_alt_int = int(current_alt.strip("c"))
+        if current_alt_int <= 7:
+            add_new_slot(f"fighter/{fighter_name}", current_alt, target_alt)
+        else:
+            current_alt_int = int(target_alt.strip("c")) % 8
+            add_new_slot(f"fighter/{fighter_name}", f"c0{current_alt_int}", target_alt)
     else:
         add_missing_files(reslotted_files, fighter_name, target_alt)
 
@@ -161,7 +166,7 @@ def addFilesToDirInfo(dir_info, files, target_color):
         file_path = file_array[index]
         if file_path.startswith("0x"):
             continue
-        new_file_path = re.sub(r"c0[0-9]", target_color, file_path)
+        new_file_path = re.sub(r"c0[0-9]", target_color, file_path, 1)
         if new_file_path in resulting_config["new-dir-files"][dir_info]:
             continue
         resulting_config["new-dir-files"][dir_info].append(new_file_path)
@@ -177,7 +182,7 @@ def addSharedFiles(src_files, source_color, target_color):
             continue
         used_files.append(file_path)
 
-        new_file_path = re.sub(r"c0[0-9]", target_color, file_path)
+        new_file_path = re.sub(r"c0[0-9]", target_color, file_path, 1)
         if new_file_path in existing_files:
             continue
 

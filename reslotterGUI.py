@@ -14,8 +14,8 @@ import reslotter
 root = Tk()
 root.title("reslotterGUI")
 root.withdraw()
-root.maxSources = 8
-root.maxSlots = 11
+root.maxSources = 256
+root.maxSlots = 256
 root.exclusive = True
 
 #Config options
