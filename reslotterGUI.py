@@ -284,21 +284,25 @@ def Reslot():
 
 	root.popup.destroy()
 
-	usesAegis=fighter == "eflame" or fighter=="elight"
-	if (usesAdditional and usesAegis):
-		messagebox.showerror(root.title(),"Aegis cannot be reslotted to additional slots")
-		root.destroy()
-		sys.exit("success")
+	# usesAegis=fighter == "eflame" or fighter=="elight"
+	# if (usesAdditional and usesAegis):
+	# 	messagebox.showerror(root.title(),"Aegis cannot be reslotted to additional slots")
+	# 	root.destroy()
+	# 	sys.exit("success")
 
 
 	succeeded=False
 	config = {
-		"new_dir_files": {
-		}
-	}
+        "new-dir-infos": [],
+        "new-dir-infos-base": {},
+        "share-to-vanilla": {},
+        "new-dir-files": {}
+    }
 
 	if (not exclude):
 		shutil.copy(root.searchDir,targetDir)
+
+	reslotter.init(root.hashes)
 
 	for i in range(len(sources)):
 		source = sources[i]
@@ -316,22 +320,13 @@ def Reslot():
 		try:
 			reslotter.main(subcall[1],subcall[2],subcall[3],subcall[4],subcall[5],subcall[6],subcall[7],subcall[8])
 			succeeded=True
-			if (not usesAdditional):
-				currentConfig = open(targetDir+"/config.json")
-				configData = json.loads(currentConfig.read())
-				for d in configData["new_dir_files"]:
-					config["new_dir_files"].update({d:configData["new_dir_files"][d]})
-				currentConfig.close()
 		except IndexError:
 			reslotter.usage()
 
-	if (succeeded):
-		if (not usesAdditional):
-			newConfigLocation = targetDir + '/config.json'
-			newConfig = open(newConfigLocation,'w')
-			newConfig.close()
-			with open(newConfigLocation, 'w', encoding='utf-8') as f:
-				json.dump(config, f, ensure_ascii=False, indent=4)
+	if succeeded:
+		newConfigLocation = targetDir + '/config.json'
+		with open(newConfigLocation, 'w+', encoding='utf-8') as f:
+			json.dump(reslotter.resulting_config, f, ensure_ascii=False, indent=4)
 
 		messagebox.showinfo(root.title(),"Finished!")
 		webbrowser.open(targetDir)
