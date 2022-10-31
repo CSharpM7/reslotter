@@ -96,7 +96,7 @@ def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, 
             add_new_slot(f"fighter/{fighter_name}", current_alt, target_alt)
         else:
             current_alt_int = int(target_alt.strip("c")) % 8
-            add_new_slot(f"fighter/{fighter_name}", f"c{current_alt_int}", target_alt)
+            add_new_slot(f"fighter/{fighter_name}", f"c0{current_alt_int}", target_alt)
     else:
         add_missing_files(reslotted_files, fighter_name, target_alt)
 
