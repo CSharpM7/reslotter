@@ -62,3 +62,5 @@ __init__.spec
 reslotterGUI.zip
 
 output/
+
+reslotterGUI.spec
