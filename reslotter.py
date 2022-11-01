@@ -54,37 +54,39 @@ def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, 
             lookfor = f"/{current_alt}/"
             replace = f"/{target_alt}/"
             new_file = files.replace(lookfor, replace)
-            makeDirsFromFile(os.path.join(out_dir, new_file))
-            shutil.copy(os.path.join(mod_directory, files), os.path.join(out_dir, new_file))
+            if new_file.__contains__("_" + fighter_name + "_") and target_alt != current_alt :
+                makeDirsFromFile(os.path.join(out_dir, new_file))
+                shutil.copy(os.path.join(mod_directory, files), os.path.join(out_dir, new_file))
             reslotted_files.append(new_file)
         elif files.startswith("ui/replace/chara"):
             lookfor = f"{current_alt.strip('c')}.bntx"
             replace = f"{target_alt.strip('c')}.bntx"
             new_file = files.replace(lookfor, replace)
-            if new_file.__contains__("_" + fighter_name + "_"):
+            if new_file.__contains__("_" + fighter_name + "_") and target_alt != current_alt :
                 makeDirsFromFile(os.path.join(out_dir, new_file))
                 shutil.copy(os.path.join(mod_directory, files), os.path.join(out_dir, new_file))
         elif files.startswith("ui/replace_patch/chara"):
             lookfor = f"{current_alt.strip('c')}.bntx"
             replace = f"{target_alt.strip('c')}.bntx"
             new_file = files.replace(lookfor, replace)
-            if new_file.__contains__("_" + fighter_name + "_"):
+            if new_file.__contains__("_" + fighter_name + "_") and target_alt != current_alt :
                 makeDirsFromFile(os.path.join(out_dir, new_file))
                 shutil.copy(os.path.join(mod_directory, files), os.path.join(out_dir, new_file))
         elif files.startswith("sound/bank/fighter"):
             lookfor = f"_{current_alt}"
             replace = f"_{target_alt}"
             new_file = files.replace(lookfor, replace)
-            if new_file.__contains__("_" + fighter_name + "_"):
+            if new_file.__contains__("_" + fighter_name + "_") and target_alt != current_alt :
                 makeDirsFromFile(os.path.join(out_dir, new_file))
                 shutil.copy(os.path.join(mod_directory, files), os.path.join(out_dir, new_file))
-                reslotted_files.append(new_file)
+            reslotted_files.append(new_file)
         elif files.startswith(f"effect/fighter"):
             lookfor = f"{current_alt.strip('c')}"
             replace = f"{target_alt.strip('c')}"
             new_file = files.replace(lookfor, replace)
-            makeDirsFromFile(os.path.join(out_dir, new_file))
-            shutil.copy(os.path.join(mod_directory, files), os.path.join(out_dir, new_file))
+            if new_file.__contains__("_" + fighter_name + "_") and target_alt != current_alt :
+                makeDirsFromFile(os.path.join(out_dir, new_file))
+                shutil.copy(os.path.join(mod_directory, files), os.path.join(out_dir, new_file))
             reslotted_files.append(new_file)
 
     existing_files.extend(reslotted_files)
@@ -192,11 +194,15 @@ def addSharedFiles(src_files, source_color, target_color):
         if new_file_path in existing_files:
             continue
 
-        if file_path not in resulting_config["share-to-vanilla"]:
-            resulting_config["share-to-vanilla"][file_path] = []
+        share_to = "share-to-vanilla"
+        if "motion/" in file_path or "camera/" in file_path:
+            share_to = "share-to-added"
+
+        if file_path not in resulting_config[share_to]:
+            resulting_config[share_to][file_path] = []
         
-        if new_file_path not in resulting_config["share-to-vanilla"][file_path]:
-            resulting_config["share-to-vanilla"][file_path].append(new_file_path)
+        if new_file_path not in resulting_config[share_to][file_path]:
+            resulting_config[share_to][file_path].append(new_file_path)
 
 def main(mod_directory, hashes_file, fighter_name, current_alt, target_alt, out_dir,exclude,createConfig):
     # get all of the files the mod modifies
@@ -228,6 +234,7 @@ def init(hashes_file):
         "new-dir-infos": [],
         "new-dir-infos-base": {},
         "share-to-vanilla": {},
+        "share-to-added": {},
         "new-dir-files": {}
     }
     existing_files = []
