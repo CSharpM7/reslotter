@@ -296,6 +296,7 @@ def Reslot():
         "new-dir-infos": [],
         "new-dir-infos-base": {},
         "share-to-vanilla": {},
+        "share-to-added": {},
         "new-dir-files": {}
     }
 
