@@ -311,8 +311,8 @@ def Reslot():
 		print(source+"/"+target)
 		if (target == ""):
 			continue
-		elif (source==target and clone==False):
-			continue
+		# elif (source==target and clone==False):
+		# 	continue
 
 		configCall = "N" if usesAdditional else "Y"
 		subcall = ["reslotter.py",root.searchDir,root.hashes,fighter,source,target,targetDir,"Y",configCall]
