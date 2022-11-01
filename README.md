@@ -14,8 +14,6 @@ Original reslotter written by [Blujay](https://github.com/blu-dev) and maintaine
 
 You may run this program's .py file if you have python installed. Otherwise, I've provided a `.exe` version, though the `.py` version will always be the most up-to-date version.
 
-**Release 3.02 is currently ahead of `.py` as new features are being integrated to source later this week**
-
 ### .py: 
 Download via the green code button located on the repository (https://github.com/CSharpM7/reslotter) Run `reslotterGUI.py`, not `reslotter.py`.
 ### .exe:

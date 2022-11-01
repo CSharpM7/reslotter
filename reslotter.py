@@ -105,7 +105,7 @@ def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, 
     return reslotted_files, fighter_files
 
 # Previous name of function was make_config
-def add_missing_files(reslotted_files, fighter_name, target_alt, is_effect=False):
+def add_missing_files(reslotted_files, fighter_name, target_alt, is_new_slot=False):
     # make a variable that holds the dirinfo path for the new slot
     new_dir_info = f"fighter/{fighter_name}/{target_alt}"
     # we have to do config separately if it's an added slot because those require extra config options
@@ -115,10 +115,7 @@ def add_missing_files(reslotted_files, fighter_name, target_alt, is_effect=False
 
     for file in reslotted_files:
         #Don't add oneslot effects to vanilla alts configs
-        if (not is_effect and "effect" in file):
-            continue
-        #Only add them for additional alts
-        elif (is_effect and not "effect" in file):
+        if (not is_new_slot and "effect" in file):
             continue
         if file not in known_files:
             resulting_config["new-dir-files"][new_dir_info].append(file)
