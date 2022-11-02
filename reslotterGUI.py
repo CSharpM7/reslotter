@@ -300,7 +300,7 @@ def MainWindow():
 	button = Button(buttons, text="Reconfig", command=Reconfig).pack(side = RIGHT,padx=5)
 	root.protocol("WM_DELETE_WINDOW", quit)
 
-	root.minsize(175, 150+len(root.targets)*20)
+	root.minsize(175, 120+len(root.targets)*40)
 
 	#Menubar
 	root.menubar = Menu(root)
@@ -337,7 +337,7 @@ def RunReslotter(onlyConfig=False):
 		targetText = root.targets[i].get()
 		#Replace it if doing reconfig
 		if (onlyConfig):
-			targetText = "c0"+str(i)
+			targetText = sourceText
 		#Else If TargetText is empty, either append blank or append the same slot based on excluding
 		elif (not "c" in targetText) and not onlyConfig:
 			if (exclude):
@@ -400,6 +400,7 @@ def RunReslotter(onlyConfig=False):
 		#excludeCall = "Y" if exclude else "N"
 		subcall = ["reslotter.py",root.searchDir,root.hashes,fighter,source,target,targetDir,"Y"]
 		print("Changing "+fighter+"'s "+source+" mod to "+target+"...")
+
 		try:
 			reslotter.main(subcall[1],subcall[2],subcall[3],subcall[4],subcall[5],subcall[6],subcall[7])
 			succeeded=True

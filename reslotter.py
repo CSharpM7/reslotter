@@ -72,6 +72,7 @@ def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, 
             replace = f"{target_alt.strip('c')}.bntx"
             new_file = file.replace(lookfor, replace)
 
+            print(target_alt+"/"+current_alt)
             if new_file.__contains__("_" + fighter_name + "_") and target_alt != current_alt :
                 makeDirsFromFile(os.path.join(out_dir, new_file))
                 shutil.copy(os.path.join(mod_directory, file), os.path.join(out_dir, new_file))
