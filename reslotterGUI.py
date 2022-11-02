@@ -49,14 +49,14 @@ def Init():
 
 
 #open folder dialogue
-def SetsearchDir():
+def SetsearchDir(firstLoad=True):
     messagebox.showinfo(root.title(),"Select your mod's main folder")
     searchDir = filedialog.askdirectory(title = "Select your mod's main folder")
     if (searchDir == ""):
         if (firstLoad):
         	root.destroy()
         	sys.exit("User exited")
-    if (IsValidSearch(searchDir) == False):
+    elif (IsValidSearch(searchDir) == False):
         messagebox.showerror(root.title(),"Please select the root of your mod's folder! This folder should contain a fighter folder within it!")
         if (firstLoad):
         	root.destroy()
@@ -83,8 +83,7 @@ def InitSearch(firstLoad=True):
 
     #Get or Set root.searchDir
     if (searchDir == ""):
-        print("no search")
-        searchDir = SetsearchDir()
+        searchDir = SetsearchDir(firstLoad)
     else:
         if (IsValidSearch(searchDir)):
             basename = os.path.basename(searchDir)
@@ -95,22 +94,18 @@ def InitSearch(firstLoad=True):
                 searchDir = SetsearchDir()
                 print("new search directory")
             else:
-                root.destroy(searchDir)
-                sys.exit("exited prompt")
+                return False
         else:
-            searchDir = SetsearchDir()
+            searchDir = SetsearchDir(firstLoad)
 
     if (searchDir == "" and not firstLoad):
-    	return
+    	return False
 
     root.searchDir = searchDir
     #Write new location to config file      
     config.set("DEFAULT","searchDir",root.searchDir)
     with open('config.ini', 'w+') as configfile:
-            config.write(configfile)
-
-root.fighters= []
-root.slots = []
+        config.write(configfile)
 
 def GetFightersFromFolders(folders):
 	fighters = []
@@ -162,6 +157,8 @@ def GetFightersFromFiles(folders):
 	
 
 def SetFighter():
+	root.fighters= []
+	root.slots = []
 	fighters = []
 	fighterFolder = root.searchDir+"/fighter"
 	uiFolder = root.searchDir+"/ui"
@@ -187,9 +184,14 @@ def SetFighter():
 
 	root.fighters = fighters
 
-	if ("eflame" in fighters or "elight" in fighters):
-		messagebox.showwarning(root.title(),"Heads up, Pyra and Mythra cannot use additional slots. You might have to double check their UI files, too")
+	#if ("eflame" in fighters or "elight" in fighters):
+#		messagebox.showwarning(root.title(),"Heads up, Pyra and Mythra cannot use additional slots. You might have to double check their UI files, too")
 
+def OpenNewFolder():
+	if (InitSearch(False) == False):
+		return
+	SetFighter()
+	RefreshMainWindow()
 
 def OpenReadMe():
 	webbrowser.open('https://github.com/CSharpM7/reslotter')
@@ -217,73 +219,21 @@ def UpdateHeader(newheader="",color="black"):
 
 	root.header.config(text = prefix+workspace+newheader, fg = color)
 
-def MainWindow():
+def CreateMainWindow():
 	root.deiconify()
 	root.header = Label(root, text="", bd=1, relief=SUNKEN, anchor=N)
 	root.header.pack(side = TOP, fill=X)
 	UpdateHeader()
 
 	root.comboFighter = ttk.Combobox(root, width = 8)
-
-	root.comboFighter['values'] = [f for f in root.fighters]
-	root.comboFighter.current(0)
 	root.comboFighter.pack()
 
 	frame = Frame(root)
 	frame.pack(pady=5)
 
-	frameCombos = Frame(frame)
-	frameCombos.pack(side = TOP,padx=5)
+	root.frameCombos = Frame(frame)
+	root.frameCombos.pack(side = TOP,padx=5)
 	
-	root.sources = []
-	root.targets = []
-	for i in range(root.maxSources):
-		#only use the sources provided
-		textSource = "c%02d" % i
-		if (not textSource in root.slots) and (root.exclusive):
-			continue
-		if (i>=8):
-			textSource = "+"+textSource
-
-		strSource = StringVar()
-		strTarget = StringVar()
-
-		#Add a header before listing each source
-		if (i==0):
-			headerText = Frame(frameCombos)
-			headerText.pack(side = TOP)
-			headerSource = Label(headerText,text="Source")
-			headerSource.pack(side = LEFT)
-			headerTarget = Label(headerText,text="Target", width = 8)
-			headerTarget.pack(side = RIGHT)
-
-		comboEntry = Frame(frameCombos)
-		comboEntry.pack()
-
-		labelSource = Label(comboEntry,text=textSource)
-		labelSource.pack(side = LEFT)
-		root.sources.append(labelSource)
-
-		separater = Frame(comboEntry,width = 8)
-		separater.pack(side = LEFT)
-		
-		#Add possible combo select values
-		comboTarget = ttk.Combobox(comboEntry, width = 8)
-		values = [""]
-		for m in range(root.maxSlots):
-			textSlot = "c0"+str(m)
-			#don't add 0 to double/triple digits
-			if (m>=10):
-				textSlot = "+c"+str(m)
-			#add + to additional slots
-			elif (m>=8):
-				textSlot = "+"+textSlot
-			values.append(textSlot)
-
-		comboTarget['values'] = values
-		comboTarget.current(0)
-		comboTarget.pack(side = RIGHT)
-		root.targets.append(comboTarget)
 
 	root.excludeCheckVariable = IntVar(value=1)
 	root.excludeCheck = Checkbutton(root, text='Exclude Other Alts',variable=root.excludeCheckVariable, onvalue=1, offvalue=0)
@@ -300,17 +250,86 @@ def MainWindow():
 	button = Button(buttons, text="Reconfig", command=Reconfig).pack(side = RIGHT,padx=5)
 	root.protocol("WM_DELETE_WINDOW", quit)
 
-	root.minsize(175, 130+len(root.targets)*30)
-
 	#Menubar
 	root.menubar = Menu(root)
 	root.filemenu = Menu(root.menubar, tearoff=0)
+	root.filemenu.add_command(label="Open New Mod Folder", command=OpenNewFolder)
 	root.filemenu.add_command(label="Slot Addition Guide", command=OpenGuide)
 	root.filemenu.add_command(label="Open README", command=OpenReadMe)
 	root.filemenu.add_command(label="Exit", command=quit)
 	root.menubar.add_cascade(label="File", menu=root.filemenu)
 	root.config(menu=root.menubar)
 
+	RefreshMainWindow()
+
+def OnTargetChange(*args):
+	root.UnsavedChanges=True
+	UpdateHeader()
+
+def RefreshMainWindow():
+	root.UnsavedChanges=False
+	UpdateHeader()
+	root.comboFighter['values'] = [f for f in root.fighters]
+	root.comboFighter.current(0)
+
+	for widget in root.frameCombos.winfo_children():
+		widget.destroy()
+
+	root.sources = []
+	root.targets = []
+	root.strTargets = {}
+	for i in range(root.maxSources):
+		#only use the sources provided
+		textSource = "c%02d" % i
+		if (not textSource in root.slots) and (root.exclusive):
+			continue
+		if (i>=8):
+			textSource = "+"+textSource
+
+		strSource = StringVar()
+		strTarget = StringVar()
+
+		#Add a header before listing each source
+		if (i==0):
+			headerText = Frame(root.frameCombos)
+			headerText.pack(side = TOP)
+			headerSource = Label(headerText,text="Source")
+			headerSource.pack(side = LEFT)
+			headerTarget = Label(headerText,text="Target", width = 8)
+			headerTarget.pack(side = RIGHT)
+
+		comboEntry = Frame(root.frameCombos)
+		comboEntry.pack()
+
+		labelSource = Label(comboEntry,text=textSource)
+		labelSource.pack(side = LEFT)
+		root.sources.append(labelSource)
+
+		separater = Frame(comboEntry,width = 8)
+		separater.pack(side = LEFT)
+		
+		root.strTargets.update({textSource:StringVar(name="")})
+		strTarget= root.strTargets[textSource]
+		#Add possible combo select values
+		comboTarget = ttk.Combobox(comboEntry,textvar=strTarget, width = 8)
+		values = [""]
+		for m in range(root.maxSlots):
+			textSlot = "c0"+str(m)
+			#don't add 0 to double/triple digits
+			if (m>=10):
+				textSlot = "+c"+str(m)
+			#add + to additional slots
+			elif (m>=8):
+				textSlot = "+"+textSlot
+			values.append(textSlot)
+
+		comboTarget['values'] = values
+		comboTarget.current(0)
+		strTarget.trace_add('write',OnTargetChange)
+		comboTarget.pack(side = RIGHT)
+		root.targets.append(comboTarget)
+
+	root.minsize(175, 130+len(root.targets)*30)
 
 
 def Reslot():
@@ -431,9 +450,9 @@ def RunReslotter(onlyConfig=False):
 	else:
 		messagebox.showerror(root.title(),"Failed to reslot")
 
-	root.destroy()
-	sys.exit("success")
-
+	root.deiconify()
+	root.UnsavedChanges=False
+	UpdateHeader()
 
 def quit():
 	root.destroy()
@@ -441,9 +460,11 @@ def quit():
 
 def main():
 	Init()
-	InitSearch()
+	if (InitSearch()==False):
+		root.destroy(searchDir)
+		sys.exit("exited prompt or folder does not exist")
 	SetFighter()
-	MainWindow()
+	CreateMainWindow()
 
 main()
 root.mainloop()
