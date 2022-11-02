@@ -239,7 +239,7 @@ def MainWindow():
 	root.targets = []
 	for i in range(root.maxSources):
 		#only use the sources provided
-		textSource = "c0"+str(i)
+		textSource = "c%02d" % i
 		if (not textSource in root.slots) and (root.exclusive):
 			continue
 		if (i>=8):
@@ -356,7 +356,7 @@ def RunReslotter(onlyConfig=False):
 			knownTargets+=1
 
 		#Disallow a target with multiple sources
-		if (targetText in targetText):
+		if (targetText in targets):
 			messagebox.showwarning(root.title(),"Multiple sources share the same target! Please keep each target slot unique")
 			return
 		targets[i] = targetText
@@ -386,26 +386,29 @@ def RunReslotter(onlyConfig=False):
         "share-to-added": {},
         "new-dir-files": {}
     }
-	reslotter.init(root.hashes)
+	reslotter.init(root.hashes,root.searchDir)
 
 	for i in range(len(root.sources)):
 		source = sources[i]
 		target = targets[i]
-		if (target == "" and exclude):
+		print(target)
+		if (target == "" and exclude==True):
 			continue
 		# elif (source==target and clone==False):
 		# 	continue
 
 		#excludeCall = "Y" if exclude else "N"
-		subcall = ["reslotter.py",root.searchDir,root.hashes,fighter,source,target,targetDir]
+		subcall = ["reslotter.py",root.searchDir,root.hashes,fighter,source,target,targetDir,"Y"]
 		print("Changing "+fighter+"'s "+source+" mod to "+target+"...")
 		try:
-			reslotter.main(subcall[1],subcall[2],subcall[3],subcall[4],subcall[5],subcall[6])
+			reslotter.main(subcall[1],subcall[2],subcall[3],subcall[4],subcall[5],subcall[6],subcall[7])
 			succeeded=True
 		except IndexError:
 			reslotter.usage()
 
 	if succeeded:
+		#if clone is false
+
 		newConfigLocation = targetDir + '/config.json'
 		with open(newConfigLocation, 'w+', encoding='utf-8') as f:
 			json.dump(reslotter.resulting_config, f, ensure_ascii=False, indent=4)

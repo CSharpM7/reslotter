@@ -7,7 +7,7 @@ import json
 import re
 
 def usage():
-    print("usage: python reslotter.py <mod_directory> <hashes_file> <fighter_name> <current_alt> <target_alt> <out_directory>")
+    print("usage: python reslotter.py <mod_directory> <hashes_file> <fighter_name> <current_alt> <target_alt> <out_directory> <exclude other alts (Y/N)>")
     sys.exit(2)
 
 def makeDirsFromFile(path):
@@ -42,48 +42,65 @@ def find_fighter_files(mod_directory):
 
 def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, out_dir, fighter_name,exclude):
     reslotted_files = []
-    for files in fighter_files:
-        # since they do files and folders differently, we have to go through each directory separately
-        if files.startswith(f"fighter/{fighter_name}"):
+    for file in fighter_files:
+        #Exclude will not include any other file outside of the current_alt
+        if (exclude.lower()=="y"):
+            if (not current_alt.strip('c') in file):
+                continue
+
+        # Since each directory has a different structure, we have to go through each directory separately
+        if file.startswith(f"fighter/{fighter_name}"):
             if (exclude.lower()=="y"):
-                if (not "/"+current_alt+"/" in files):
+                if (not "/"+current_alt+"/" in file):
                     continue
+            
             lookfor = f"/{current_alt}/"
             replace = f"/{target_alt}/"
-            new_file = files.replace(lookfor, replace)
-            if new_file.__contains__("_" + fighter_name + "_") and target_alt != current_alt :
+            new_file = file.replace(lookfor, replace)
+            
+            #Used during "reconfig" to not copy files and simply add to the list of files for the config
+            if target_alt != current_alt :
                 makeDirsFromFile(os.path.join(out_dir, new_file))
-                shutil.copy(os.path.join(mod_directory, files), os.path.join(out_dir, new_file))
+                shutil.copy(os.path.join(mod_directory, file), os.path.join(out_dir, new_file))
+
             reslotted_files.append(new_file)
-        elif files.startswith("ui/replace/chara"):
+
+        #Unique to UI folders, we need to check if the filename contains 
+        #"_fighter_name_" since all UI files are grouped together
+        elif file.startswith("ui/replace/chara"):
             lookfor = f"{current_alt.strip('c')}.bntx"
             replace = f"{target_alt.strip('c')}.bntx"
-            new_file = files.replace(lookfor, replace)
+            new_file = file.replace(lookfor, replace)
+
             if new_file.__contains__("_" + fighter_name + "_") and target_alt != current_alt :
                 makeDirsFromFile(os.path.join(out_dir, new_file))
-                shutil.copy(os.path.join(mod_directory, files), os.path.join(out_dir, new_file))
-        elif files.startswith("ui/replace_patch/chara"):
+                shutil.copy(os.path.join(mod_directory, file), os.path.join(out_dir, new_file))
+
+        elif file.startswith("ui/replace_patch/chara"):
             lookfor = f"{current_alt.strip('c')}.bntx"
             replace = f"{target_alt.strip('c')}.bntx"
-            new_file = files.replace(lookfor, replace)
+            new_file = file.replace(lookfor, replace)
+
             if new_file.__contains__("_" + fighter_name + "_") and target_alt != current_alt :
                 makeDirsFromFile(os.path.join(out_dir, new_file))
-                shutil.copy(os.path.join(mod_directory, files), os.path.join(out_dir, new_file))
-        elif files.startswith("sound/bank/fighter"):
+                shutil.copy(os.path.join(mod_directory, file), os.path.join(out_dir, new_file))
+
+        elif file.startswith("sound/bank/fighter"):
             lookfor = f"_{current_alt}"
             replace = f"_{target_alt}"
-            new_file = files.replace(lookfor, replace)
-            if new_file.__contains__("_" + fighter_name + "_") and target_alt != current_alt :
+            new_file = file.replace(lookfor, replace)
+
+            if target_alt != current_alt :
                 makeDirsFromFile(os.path.join(out_dir, new_file))
-                shutil.copy(os.path.join(mod_directory, files), os.path.join(out_dir, new_file))
+                shutil.copy(os.path.join(mod_directory, file), os.path.join(out_dir, new_file))
             reslotted_files.append(new_file)
-        elif files.startswith(f"effect/fighter"):
+        elif file.startswith(f"effect/fighter"):
             lookfor = f"{current_alt.strip('c')}"
             replace = f"{target_alt.strip('c')}"
-            new_file = files.replace(lookfor, replace)
-            if new_file.__contains__("_" + fighter_name + "_") and target_alt != current_alt :
+            new_file = file.replace(lookfor, replace)
+            if target_alt != current_alt :
                 makeDirsFromFile(os.path.join(out_dir, new_file))
-                shutil.copy(os.path.join(mod_directory, files), os.path.join(out_dir, new_file))
+                shutil.copy(os.path.join(mod_directory, file), os.path.join(out_dir, new_file))
             reslotted_files.append(new_file)
 
     existing_files.extend(reslotted_files)
@@ -200,21 +217,23 @@ def addSharedFiles(src_files, source_color, target_color):
 
 def main(mod_directory, hashes_file, fighter_name, current_alt, target_alt, out_dir,exclude):
     # get all of the files the mod modifies
-    fighter_files = find_fighter_files(mod_directory)
+    #fighter_files = find_fighter_files(mod_directory)
 
     # make the out directory if it doesn't exist
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
     # reslot the files we use
-    reslotted_files, fighter_files = reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, out_dir, fighter_name)
+    reslotted_files, new_fighter_files = reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, out_dir, fighter_name,exclude)
 
 
-def init(hashes_file):
+def init(hashes_file,mod_directory):
     # load dir_info_with_files_trimmed.json for dir addition config gen
     global dirs_data
     global file_array
     global existing_files
     global resulting_config
+    global fighter_files
+    fighter_files = find_fighter_files(mod_directory)
     resulting_config = {
         "new-dir-infos": [],
         "new-dir-infos-base": {},
@@ -235,6 +254,6 @@ def init(hashes_file):
 
 if __name__ == "__main__":
     try:
-        main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6])
+        main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6],sys.argv[7])
     except IndexError:
         usage()
