@@ -48,6 +48,7 @@ def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, 
             if (not current_alt.strip('c') in file):
                 continue
 
+
         # Since each directory has a different structure, we have to go through each directory separately
         if file.startswith(f"fighter/{fighter_name}"):
             if (exclude.lower()=="y"):
@@ -67,23 +68,33 @@ def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, 
 
         #Unique to UI folders, we need to check if the filename contains 
         #"_fighter_name_" since all UI files are grouped together
-        elif file.startswith("ui/replace/chara"):
+        elif file.startswith("ui/replace/chara") or file.startswith("ui/replace_patch/chara"):
             lookfor = f"{current_alt.strip('c')}.bntx"
             replace = f"{target_alt.strip('c')}.bntx"
             new_file = file.replace(lookfor, replace)
 
-            if new_file.__contains__("_" + fighter_name + "_") and target_alt != current_alt :
-                makeDirsFromFile(os.path.join(out_dir, new_file))
-                shutil.copy(os.path.join(mod_directory, file), os.path.join(out_dir, new_file))
+            fighter_keys = [fighter_name]
+            #Ice Climber / Aegis Stuff
+            if (fighter_name=="popo" or fighter_name=="nana"):
+                fighter_keys = ["ice_climber"]
+            elif (fighter_name=="eflame"):
+                fighter_keys = ["eflame_first","eflame_only"]
+            elif (fighter_name=="elight"):
+                fighter_keys = ["elight_first","elight_only"]
 
-        elif file.startswith("ui/replace_patch/chara"):
-            lookfor = f"{current_alt.strip('c')}.bntx"
-            replace = f"{target_alt.strip('c')}.bntx"
-            new_file = file.replace(lookfor, replace)
+            for key in fighter_keys:
+                if new_file.__contains__("_" + key + "_") and target_alt != current_alt :
+                    makeDirsFromFile(os.path.join(out_dir, new_file))
+                    shutil.copy(os.path.join(mod_directory, file), os.path.join(out_dir, new_file))
 
-            if new_file.__contains__("_" + fighter_name + "_") and target_alt != current_alt :
-                makeDirsFromFile(os.path.join(out_dir, new_file))
-                shutil.copy(os.path.join(mod_directory, file), os.path.join(out_dir, new_file))
+        #elif file.startswith("ui/replace_patch/chara"):
+        #    lookfor = f"{current_alt.strip('c')}.bntx"
+        #    replace = f"{target_alt.strip('c')}.bntx"
+        #    new_file = file.replace(lookfor, replace)
+
+        #    if new_file.__contains__("_" + fighter_name + "_") and target_alt != current_alt :
+        #        makeDirsFromFile(os.path.join(out_dir, new_file))
+        #        shutil.copy(os.path.join(mod_directory, file), os.path.join(out_dir, new_file))
 
         elif file.startswith("sound/bank/fighter"):
             lookfor = f"_{current_alt}"

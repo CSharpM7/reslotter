@@ -8,6 +8,8 @@ import sys
 import shutil
 import webbrowser
 import json
+import re
+import xml.etree.ElementTree as ET
 
 import reslotter
 
@@ -234,21 +236,34 @@ def CreateMainWindow():
 	root.frameCombos = Frame(frame)
 	root.frameCombos.pack(side = TOP,padx=5)
 	
+	buttons = Frame(root,width = 8)
+	buttons.pack(side = BOTTOM,pady=10)
+	button = Button(buttons, text="Change Slots", command=Reslot).pack(side = LEFT,padx=5)
+	button = Button(buttons, text="Reconfig", command=Reconfig).pack(side = RIGHT,padx=5)
+
+	prcEntry = Frame(root)
+	prcEntry.pack(side = BOTTOM)
+	labelPRC = Label(prcEntry,text="New Max Slots")
+	labelPRC.pack(side = LEFT)
+	separater = Frame(prcEntry,width = 8)
+	separater.pack(side = LEFT)
+
+	root.comboPRC = ttk.Combobox(prcEntry, width = 8)
+	values = [""]
+	for m in range(9,root.maxSlots):
+		textSlot = m
+		values.append(textSlot)
+	root.comboPRC['values'] = values
+	root.comboPRC.current(0)
+	root.comboPRC.pack(side = RIGHT)
 
 	root.excludeCheckVariable = IntVar(value=1)
 	root.excludeCheck = Checkbutton(root, text='Exclude Other Alts',variable=root.excludeCheckVariable, onvalue=1, offvalue=0)
-	root.excludeCheck.pack()
-
+	root.excludeCheck.pack(side = BOTTOM)
 	root.cloneCheckVariable = IntVar(value=1)
 	root.cloneCheck = Checkbutton(root, text='Copy To New Folder',variable=root.cloneCheckVariable, onvalue=1, offvalue=0)
-	root.cloneCheck.pack()
+	root.cloneCheck.pack(side = BOTTOM)
 
-	buttons = Frame(root,width = 8)
-	buttons.pack(side = BOTTOM,pady=10)
-
-	button = Button(buttons, text="Change Slots", command=Reslot).pack(side = LEFT,padx=5)
-	button = Button(buttons, text="Reconfig", command=Reconfig).pack(side = RIGHT,padx=5)
-	root.protocol("WM_DELETE_WINDOW", quit)
 
 	#Menubar
 	root.menubar = Menu(root)
@@ -259,6 +274,7 @@ def CreateMainWindow():
 	root.filemenu.add_command(label="Exit", command=quit)
 	root.menubar.add_cascade(label="File", menu=root.filemenu)
 	root.config(menu=root.menubar)
+	root.protocol("WM_DELETE_WINDOW", quit)
 
 	RefreshMainWindow()
 
@@ -314,12 +330,9 @@ def RefreshMainWindow():
 		comboTarget = ttk.Combobox(comboEntry,textvar=strTarget, width = 8)
 		values = [""]
 		for m in range(root.maxSlots):
-			textSlot = "c0"+str(m)
-			#don't add 0 to double/triple digits
-			if (m>=10):
-				textSlot = "+c"+str(m)
+			textSlot = "c%02d" % m
 			#add + to additional slots
-			elif (m>=8):
+			if (m>=8):
 				textSlot = "+"+textSlot
 			values.append(textSlot)
 
@@ -337,8 +350,79 @@ def Reslot():
 def Reconfig():
 	RunReslotter(True)
 
+
+
+Climber = ["popo","nana"]
+Trainer = ["ptrainer","ptrainer_low","pzenigame","pfushigisou","plizardon"]
+Aegis = ["element","eflame","elight"]
+
+def CreatePRCXML(fighter,targetDir):
+	newColors = [int(s) for s in re.findall(r'\b\d+\b',root.comboPRC.get())]
+	if (len(newColors)==0):
+		return
+
+	prcFile = "ui_chara_db.prcxml"
+	if ((not os.path.isfile(os.getcwd() + prcFile))
+		or (not os.path.isfile(os.getcwd() + prcFile.replace("prcxml","txt")))
+	):
+		messagebox.showerror(root.title(),
+			"Missing ui_chara_db.prcxml or ui_chara_db.txt in this directory, cannot create a prcxml")
+		return
+
+	print("Creating prcxml...")
+
+	prcLocation = targetDir+"/ui/param/database/"
+	try:
+		os.makedirs(prcLocation)
+	except:
+		pass
+	textureListFile = open(prcLocation+prcFile,'w')
+	textureListFile.close()
+
+	indexFile = open(prcFile.replace("prcxml","txt"),'r')
+	indexes = indexFile.readlines()
+	indexes = [index.rstrip() for index in indexes]
+	indexFile.close()
+
+	targetIndexes = []
+	#Our lovely unique cases
+	if (fighter in Climber):
+		targetIndexes = [17]
+	elif (fighter in Trainer):
+		targetIndexes = [38,39,40,41]
+	elif (fighter in Aegis):
+		targetIndexes = [114,115,116,117,118]
+	#Otherwise find the index via the fighter's name
+	else:
+		for i in range(len(indexes)):
+			if (fighter == indexes[i].lower()):
+				targetIndexes.append(i)
+
+	if (len(targetIndexes)==0):
+		print("prcxml error")
+		return
+
+	with open(os.getcwd()+"/"+prcFile, encoding='utf-8', errors='replace') as file:
+		context = ET.iterparse(file, events=('end',))
+		for event, elem in context:
+			if elem.tag == 'hash40':
+				index = elem.attrib['index']
+				for targetIndex in targetIndexes:
+					if (str(index)==str(targetIndex)):
+						elem.text=""
+						elem.tag = "struct"
+						info = ET.SubElement(elem,'byte')
+						info.set("hash","color_num")
+						info.text = str(newColors[0])
+			with open(prcLocation+prcFile, 'wb') as f:
+				f.write(b"<?xml version=\"1.0\" encoding=\"UTF-16\"?>\n")
+				f.write(ET.tostring(elem))
+	print("Created!")
+
+
 def RunReslotter(onlyConfig=False):
-	fighter = root.comboFighter.get()
+	currentFighter = root.comboFighter.get().lower()
+
 	exclude = (root.excludeCheckVariable.get() and not onlyConfig)
 	clone = (root.cloneCheckVariable.get() and not onlyConfig)
 
@@ -415,31 +499,40 @@ def RunReslotter(onlyConfig=False):
     }
 	reslotter.init(root.hashes,root.searchDir)
 
-	for i in range(len(root.sources)):
-		source = sources[i]
-		target = targets[i]
-		print(target)
-		if (target == "" and exclude==True):
-			continue
-		# elif (source==target and clone==False):
-		# 	continue
+	fighters = [currentFighter]
+	if (currentFighter in Climber):
+		fighters= Climber
+	if (currentFighter in Trainer):
+		fighters= Trainer
+	if (currentFighter in Aegis):
+		fighters= Aegis
 
-		#excludeCall = "Y" if exclude else "N"
-		subcall = ["reslotter.py",root.searchDir,root.hashes,fighter,source,target,targetDir,"Y"]
-		print("Changing "+fighter+"'s "+source+" mod to "+target+"...")
+	for fighter in fighters:
+		for i in range(len(root.sources)):
+			source = sources[i]
+			target = targets[i]
+			if (target == "" and exclude==True):
+				continue
+			# elif (source==target and clone==False):
+			# 	continue
 
-		try:
-			reslotter.main(subcall[1],subcall[2],subcall[3],subcall[4],subcall[5],subcall[6],subcall[7])
-			succeeded=True
-		except IndexError:
-			reslotter.usage()
+			#excludeCall = "Y" if exclude else "N"
+			subcall = ["reslotter.py",root.searchDir,root.hashes,fighter,source,target,targetDir,"Y"]
+			print("Changing "+fighter+"'s "+source+" mod to "+target+"...")
+
+			try:
+				reslotter.main(subcall[1],subcall[2],subcall[3],subcall[4],subcall[5],subcall[6],subcall[7])
+				succeeded=True
+			except IndexError:
+				reslotter.usage()
 
 	if succeeded:
-		#if clone is false
 		if (not clone and not onlyConfig):
 			shutil.rmtree(root.searchDir)
 			os.rename(targetDir,root.searchDir)
 			targetDir=root.searchDir
+
+		CreatePRCXML(currentFighter,targetDir)
 
 		newConfigLocation = targetDir + '/config.json'
 		with open(newConfigLocation, 'w+', encoding='utf-8') as f:
