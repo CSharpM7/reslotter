@@ -23,10 +23,12 @@ Go to the releases tab and download the exe. Place that exe in it's own folder. 
 
 ## Usage
 
-Select the root of your mod's folder. You'll be presented with the GUI at the top of this README. It will populate the list with all the alts in that mod. Copy to New Folder will create a new folder with the new alts in the title (Shiny Blue DK (c03)). Exclude Other Alts is for packs with multiple alts in it. Leave it on to only have the changed alts in the new folder. Leave it unchecked to bring all alts into the new folder, changed or not. New Max Slots will create a prcxml which is used to increase the number of slots available in the Character Select Screen. Without it, your added slots will not show up in game. It is recommended that you only have one of these files per fighter.
+Select the root of your mod's folder. You'll be presented with the GUI at the top of this README. It will populate the list with all the alts in that mod. Copy to New Folder will create a new folder with the new alts in the title (Shiny Blue DK (c03)). Exclude Other Alts is for packs with multiple alts in it. Leave it on to only have the changed alts in the new folder. Leave it unchecked to bring all alts into the new folder, changed or not. 
 
 ### Changing Slots
-Navigate to which skin corresponds to the source of your mod (if you have Shinny Blue DK on the 3rd alt, it should be c02). Under the dropdown menu, select its new destination (ie c03 for the fourth, blue alt).  Hit Change Slots, and the relevant files/folders will be changed, as well as a new `config.json` will be added.
+Navigate to which skin corresponds to the source of your mod (if you have Shinny Blue DK on the 3rd alt, it should be `c02`). Under the dropdown menu, select its new destination (ie `c03` for the fourth, blue alt).  Hit Change Slots, and the relevant files/folders will be changed, as well as a new `config.json` will be added.
+### Setting New Max Slots for UI
+You will need to have an editted `ui_chara_db.prc` in order to see additional slots. New Max Slots will create a `.prcxml` which is used to increase the number of slots available in the Character Select Screen after you hit "Change Slots" or "Reconfig". You'll want to set this to the highest slot number in your modpack+1 (if I have Shiny Blue DK on `c10`, I would set the max slots to 11) It is recommended that you only have one of these files per fighter.
 ### Generating Configs
 Similar to [LazyConfig](https://github.com/CSharpM7/SharpSmashSuite/tree/main/LazyConfig), this will create a `config.json` file in your mod folder without changing any of the files, useful for when you are creating a mod that uses additional slots, or if you accidentally deleted the `config.json` file. Click on "Reconfig" to use this option.
 
