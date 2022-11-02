@@ -366,7 +366,7 @@ def CreatePRCXML(fighter,targetDir):
 		or (not os.path.isfile(os.getcwd() + prcFile.replace("prcxml","txt")))
 	):
 		messagebox.showerror(root.title(),
-			"Missing ui_chara_db.prcxml or ui_chara_db.txt in this directory, cannot create a prcxml")
+			"Missing ui_chara_db.prcxml or ui_chara_db.txt in program directory! Cannot create a prcxml")
 		return
 
 	print("Creating prcxml...")
