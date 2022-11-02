@@ -12,11 +12,13 @@ import json
 import reslotter
 
 root = Tk()
-root.title("reslotterGUI")
+root.programName="Reslotter GUI"
+root.title("")
 root.withdraw()
 root.maxSources = 256
 root.maxSlots = 256
 root.exclusive = True
+root.UnsavedChanges=False
 
 #Config options
 import configparser
@@ -49,20 +51,22 @@ def Init():
 #open folder dialogue
 def SetsearchDir():
     messagebox.showinfo(root.title(),"Select your mod's main folder")
-    root.searchDir = filedialog.askdirectory(title = "Select your mod's main folder")
-    if (root.searchDir == ""):
-        root.destroy()
-        sys.exit("Invalid folder")
-    if (IsValidSearch() == False):
+    searchDir = filedialog.askdirectory(title = "Select your mod's main folder")
+    if (searchDir == ""):
+        if (firstLoad):
+        	root.destroy()
+        	sys.exit("User exited")
+    if (IsValidSearch(searchDir) == False):
         messagebox.showerror(root.title(),"Please select the root of your mod's folder! This folder should contain a fighter folder within it!")
-        root.destroy()
-        sys.exit("Not a stage folder")
-        
+        if (firstLoad):
+        	root.destroy()
+        	sys.exit("Not a fighter folder")
+    return searchDir
 
 #make sure that it is a validated search folder, otherwise quit
-def IsValidSearch():
+def IsValidSearch(searchDir):
 	whitelist = ["fighter","sound","ui"]
-	subfolders = [f.path for f in os.scandir(root.searchDir) if f.is_dir()]
+	subfolders = [f.path for f in os.scandir(searchDir) if f.is_dir()]
 	for dirname in list(subfolders):
 		for w in list(whitelist):
 			folderName = os.path.basename(dirname) 
@@ -72,30 +76,34 @@ def IsValidSearch():
         
 
 #Set Search Dir
-def InitSearch():
-    root.searchDir = config["DEFAULT"]["searchDir"]
-    if (not os.path.isdir(root.searchDir)):
-        root.searchDir = ""
+def InitSearch(firstLoad=True):
+    searchDir = config["DEFAULT"]["searchDir"]
+    if not (os.path.isdir(searchDir) and firstLoad):
+        searchDir = ""
 
     #Get or Set root.searchDir
-    if (root.searchDir == ""):
+    if (searchDir == ""):
         print("no search")
-        SetsearchDir()
+        searchDir = SetsearchDir()
     else:
-        if (IsValidSearch()):
-            basename = os.path.basename(root.searchDir)
+        if (IsValidSearch(searchDir)):
+            basename = os.path.basename(searchDir)
             res = messagebox.askquestion(root.title(), 'Use most recent search directory? ('+basename+')')
             if res == 'yes':
                 print("using same search dir")
             elif res == 'no':
-                SetsearchDir()
+                searchDir = SetsearchDir()
                 print("new search directory")
             else:
-                root.destroy()
+                root.destroy(searchDir)
                 sys.exit("exited prompt")
         else:
-            SetsearchDir()
+            searchDir = SetsearchDir()
 
+    if (searchDir == "" and not firstLoad):
+    	return
+
+    root.searchDir = searchDir
     #Write new location to config file      
     config.set("DEFAULT","searchDir",root.searchDir)
     with open('config.ini', 'w+') as configfile:
@@ -183,18 +191,45 @@ def SetFighter():
 		messagebox.showwarning(root.title(),"Heads up, Pyra and Mythra cannot use additional slots. You might have to double check their UI files, too")
 
 
-root.popup = None
-def RunReslotterPopUp():
-	root.popup = Toplevel()
-	root.popup.title(root.title)
+def OpenReadMe():
+	webbrowser.open('https://github.com/CSharpM7/reslotter')
+def OpenGuide():
+	webbrowser.open('https://docs.google.com/document/d/1JQHDcpozZYNbO2IAzgG7GrBWC5OJc1_xfXmMw55pGhM')
 
-	root.comboFighter = ttk.Combobox(root.popup, width = 8)
+#truncate strings for labels
+def truncate(string,direciton=W,limit=20,ellipsis=True):
+	if (len(string) < 3):
+		return string
+	text = ""
+	addEllipsis = "..." if (ellipsis) else ""
+	if direciton == W:
+		text = addEllipsis+string[len(string)-limit:len(string)]
+	else:
+		text = string[0:limit]+addEllipsis
+	return text
+
+def UpdateHeader(newheader="",color="black"):
+	prefix="*" if root.UnsavedChanges else ""
+	workspace= "("+os.path.basename(root.searchDir)+")"
+
+	if (newheader!=""):
+		newheader = " - "+newheader
+
+	root.header.config(text = prefix+workspace+newheader, fg = color)
+
+def MainWindow():
+	root.deiconify()
+	root.header = Label(root, text="", bd=1, relief=SUNKEN, anchor=N)
+	root.header.pack(side = TOP, fill=X)
+	UpdateHeader()
+
+	root.comboFighter = ttk.Combobox(root, width = 8)
 
 	root.comboFighter['values'] = [f for f in root.fighters]
 	root.comboFighter.current(0)
 	root.comboFighter.pack()
 
-	frame = Frame(root.popup)
+	frame = Frame(root)
 	frame.pack(pady=5)
 
 	frameCombos = Frame(frame)
@@ -251,16 +286,32 @@ def RunReslotterPopUp():
 		root.targets.append(comboTarget)
 
 	root.excludeCheckVariable = IntVar(value=1)
-	root.excludeCheck = Checkbutton(root.popup, text='Exclude Other Alts',variable=root.excludeCheckVariable, onvalue=1, offvalue=0)
+	root.excludeCheck = Checkbutton(root, text='Exclude Other Alts',variable=root.excludeCheckVariable, onvalue=1, offvalue=0)
 	root.excludeCheck.pack()
 
-	buttons = Frame(root.popup,width = 8)
+	root.cloneCheckVariable = IntVar(value=1)
+	root.cloneCheck = Checkbutton(root, text='Copy To New Folder',variable=root.cloneCheckVariable, onvalue=1, offvalue=0)
+	root.cloneCheck.pack()
+
+	buttons = Frame(root,width = 8)
 	buttons.pack(side = BOTTOM,pady=10)
 
 	button = Button(buttons, text="Change Slots", command=Reslot).pack(side = LEFT,padx=5)
 	button = Button(buttons, text="Reconfig", command=Reconfig).pack(side = RIGHT,padx=5)
-	root.popup.protocol("WM_DELETE_WINDOW", quit)
-	#root.withdraw();
+	root.protocol("WM_DELETE_WINDOW", quit)
+
+	root.minsize(175, 150+len(root.targets)*20)
+
+	#Menubar
+	root.menubar = Menu(root)
+	root.filemenu = Menu(root.menubar, tearoff=0)
+	root.filemenu.add_command(label="Slot Addition Guide", command=OpenGuide)
+	root.filemenu.add_command(label="Open README", command=OpenReadMe)
+	root.filemenu.add_command(label="Exit", command=quit)
+	root.menubar.add_cascade(label="File", menu=root.filemenu)
+	root.config(menu=root.menubar)
+
+
 
 def Reslot():
 	RunReslotter(False)
@@ -268,7 +319,6 @@ def Reconfig():
 	RunReslotter(True)
 
 def RunReslotter(onlyConfig=False):
-	root.withdraw()
 	fighter = root.comboFighter.get()
 	exclude = (root.excludeCheckVariable.get() and not onlyConfig)
 
@@ -305,19 +355,22 @@ def RunReslotter(onlyConfig=False):
 			targetName=targetName+" "+targetText
 			knownTargets+=1
 
+		#Disallow a target with multiple sources
+		if (targetText in targetText):
+			messagebox.showwarning(root.title(),"Multiple sources share the same target! Please keep each target slot unique")
+			return
 		targets[i] = targetText
 
 	#Return if there are no targets selected and we are reslotting
-	if (len(targets)==0 and not onlyConfig):
+	if (knownTargets==0 and not onlyConfig):
 		messagebox.showwarning(root.title(),"No targets slots are selected!")
 		return
 
+	root.withdraw()
 	print(targets)
-
 	#set directory to clone everything to, or keep it the same
 	targetName = " ("+targetName[1:]
 	targetDir = root.searchDir+targetName+")" if (not onlyConfig) else root.searchDir
-	root.popup.destroy()
 
 	#create target directory
 	try:
@@ -344,10 +397,10 @@ def RunReslotter(onlyConfig=False):
 		# 	continue
 
 		#excludeCall = "Y" if exclude else "N"
-		subcall = ["reslotter.py",root.searchDir,root.hashes,fighter,source,target,targetDir,"N"]
+		subcall = ["reslotter.py",root.searchDir,root.hashes,fighter,source,target,targetDir]
 		print("Changing "+fighter+"'s "+source+" mod to "+target+"...")
 		try:
-			reslotter.main(subcall[1],subcall[2],subcall[3],subcall[4],subcall[5],subcall[6],subcall[7])
+			reslotter.main(subcall[1],subcall[2],subcall[3],subcall[4],subcall[5],subcall[6])
 			succeeded=True
 		except IndexError:
 			reslotter.usage()
@@ -374,7 +427,7 @@ def main():
 	Init()
 	InitSearch()
 	SetFighter()
-	RunReslotterPopUp()
+	MainWindow()
 
 main()
 root.mainloop()

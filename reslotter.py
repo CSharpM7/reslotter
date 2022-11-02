@@ -7,7 +7,7 @@ import json
 import re
 
 def usage():
-    print("usage: python reslotter.py <mod_directory> <hashes_file> <fighter_name> <current_alt> <target_alt> <out_directory> <exclude other alts (Y/N)>")
+    print("usage: python reslotter.py <mod_directory> <hashes_file> <fighter_name> <current_alt> <target_alt> <out_directory>")
     sys.exit(2)
 
 def makeDirsFromFile(path):
@@ -43,9 +43,6 @@ def find_fighter_files(mod_directory):
 def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, out_dir, fighter_name,exclude):
     reslotted_files = []
     for files in fighter_files:
-        if (exclude.lower()=="y"):
-            if (not current_alt.strip('c') in files):
-                continue
         # since they do files and folders differently, we have to go through each directory separately
         if files.startswith(f"fighter/{fighter_name}"):
             if (exclude.lower()=="y"):
@@ -209,7 +206,7 @@ def main(mod_directory, hashes_file, fighter_name, current_alt, target_alt, out_
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
     # reslot the files we use
-    reslotted_files, fighter_files = reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, out_dir, fighter_name,exclude)
+    reslotted_files, fighter_files = reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, out_dir, fighter_name)
 
 
 def init(hashes_file):
@@ -238,6 +235,6 @@ def init(hashes_file):
 
 if __name__ == "__main__":
     try:
-        main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6],sys.argv[7])
+        main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6])
     except IndexError:
         usage()
