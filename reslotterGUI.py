@@ -300,7 +300,7 @@ def MainWindow():
 	button = Button(buttons, text="Reconfig", command=Reconfig).pack(side = RIGHT,padx=5)
 	root.protocol("WM_DELETE_WINDOW", quit)
 
-	root.minsize(175, 120+len(root.targets)*40)
+	root.minsize(175, 130+len(root.targets)*30)
 
 	#Menubar
 	root.menubar = Menu(root)
@@ -321,6 +321,14 @@ def Reconfig():
 def RunReslotter(onlyConfig=False):
 	fighter = root.comboFighter.get()
 	exclude = (root.excludeCheckVariable.get() and not onlyConfig)
+	clone = (root.cloneCheckVariable.get() and not onlyConfig)
+
+	if (exclude and not clone):
+		res = messagebox.askquestion(root.title(), "If you want to use the same folder, but exclude all other alts,"
+			"all mod files that are excluded will be deleted! Are you sure you want to do this?"
+			)
+		if res != 'yes':
+			return
 
 	sources=[""]*len(root.sources)
 	targets=[""]*len(root.targets)
@@ -409,6 +417,10 @@ def RunReslotter(onlyConfig=False):
 
 	if succeeded:
 		#if clone is false
+		if (not clone and not onlyConfig):
+			shutil.rmtree(root.searchDir)
+			os.rename(targetDir,root.searchDir)
+			targetDir=root.searchDir
 
 		newConfigLocation = targetDir + '/config.json'
 		with open(newConfigLocation, 'w+', encoding='utf-8') as f:
