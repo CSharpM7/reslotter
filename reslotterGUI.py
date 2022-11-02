@@ -361,9 +361,10 @@ def CreatePRCXML(fighter,targetDir):
 	if (len(newColors)==0):
 		return
 
-	prcFile = "ui_chara_db.prcxml"
-	if ((not os.path.isfile(os.getcwd() + prcFile))
-		or (not os.path.isfile(os.getcwd() + prcFile.replace("prcxml","txt")))
+	prcFile = "/ui_chara_db.prcxml"
+	print(os.getcwd() + prcFile)
+	if (not os.path.isfile(os.getcwd() + prcFile)
+		or not os.path.isfile(os.getcwd() + prcFile.replace("prcxml","txt"))
 	):
 		messagebox.showerror(root.title(),
 			"Missing ui_chara_db.prcxml or ui_chara_db.txt in program directory! Cannot create a prcxml")
@@ -371,7 +372,7 @@ def CreatePRCXML(fighter,targetDir):
 
 	print("Creating prcxml...")
 
-	prcLocation = targetDir+"/ui/param/database/"
+	prcLocation = targetDir+"/ui/param/database"
 	try:
 		os.makedirs(prcLocation)
 	except:
@@ -379,7 +380,7 @@ def CreatePRCXML(fighter,targetDir):
 	textureListFile = open(prcLocation+prcFile,'w')
 	textureListFile.close()
 
-	indexFile = open(prcFile.replace("prcxml","txt"),'r')
+	indexFile = open(os.getcwd() + prcFile.replace("prcxml","txt"),'r')
 	indexes = indexFile.readlines()
 	indexes = [index.rstrip() for index in indexes]
 	indexFile.close()
@@ -402,7 +403,7 @@ def CreatePRCXML(fighter,targetDir):
 		print("prcxml error")
 		return
 
-	with open(os.getcwd()+"/"+prcFile, encoding='utf-8', errors='replace') as file:
+	with open(os.getcwd()+prcFile, encoding='utf-8', errors='replace') as file:
 		context = ET.iterparse(file, events=('end',))
 		for event, elem in context:
 			if elem.tag == 'hash40':
