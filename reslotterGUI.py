@@ -184,7 +184,7 @@ def SetFighter():
 
 
 root.popup = None
-def ReslotPopUp():
+def RunReslotterPopUp():
 	root.popup = Toplevel()
 	root.popup.title(root.title)
 
@@ -200,13 +200,12 @@ def ReslotPopUp():
 	frameCombos = Frame(frame)
 	frameCombos.pack(side = TOP,padx=5)
 	
-	root.comboSources = []
-	root.comboTargets = []
+	root.sources = []
+	root.targets = []
 	for i in range(root.maxSources):
 		#only use the sources provided
 		textSource = "c0"+str(i)
 		if (not textSource in root.slots) and (root.exclusive):
-			root.comboTargets.append(None)
 			continue
 		if (i>=8):
 			textSource = "+"+textSource
@@ -226,70 +225,105 @@ def ReslotPopUp():
 		comboEntry = Frame(frameCombos)
 		comboEntry.pack()
 
-
 		labelSource = Label(comboEntry,text=textSource)
 		labelSource.pack(side = LEFT)
+		root.sources.append(labelSource)
 
 		separater = Frame(comboEntry,width = 8)
 		separater.pack(side = LEFT)
 		
 		#Add possible combo select values
-		root.comboTarget = ttk.Combobox(comboEntry, width = 8)
+		comboTarget = ttk.Combobox(comboEntry, width = 8)
 		values = [""]
 		for m in range(root.maxSlots):
 			textSlot = "c0"+str(m)
+			#don't add 0 to double/triple digits
 			if (m>=10):
 				textSlot = "+c"+str(m)
+			#add + to additional slots
 			elif (m>=8):
 				textSlot = "+"+textSlot
 			values.append(textSlot)
 
-		root.comboTarget['values'] = values
-		root.comboTarget.current(0)
-		root.comboTarget.pack(side = RIGHT)
-		root.comboTargets.append(root.comboTarget)
-
-	root.cloneCheckVariable = IntVar(value=1)
-	root.cloneCheck = Checkbutton(root.popup, text='Place Files In New Directory',variable=root.cloneCheckVariable, onvalue=1, offvalue=0)
-	root.cloneCheck.pack()
+		comboTarget['values'] = values
+		comboTarget.current(0)
+		comboTarget.pack(side = RIGHT)
+		root.targets.append(comboTarget)
 
 	root.excludeCheckVariable = IntVar(value=1)
 	root.excludeCheck = Checkbutton(root.popup, text='Exclude Other Alts',variable=root.excludeCheckVariable, onvalue=1, offvalue=0)
 	root.excludeCheck.pack()
 
-	button = Button(root.popup, text="Change", command=Reslot).pack(pady=5)
+	buttons = Frame(root.popup,width = 8)
+	buttons.pack(side = BOTTOM,pady=10)
+
+	button = Button(buttons, text="Change Slots", command=Reslot).pack(side = LEFT,padx=5)
+	button = Button(buttons, text="Reconfig", command=Reconfig).pack(side = RIGHT,padx=5)
 	root.popup.protocol("WM_DELETE_WINDOW", quit)
 	#root.withdraw();
 
 def Reslot():
-	root.withdraw()
-	clone = root.cloneCheckVariable.get()
-	fighter = root.comboFighter.get()
-	targetDir = root.searchDir+" - Reslot" if (clone) else root.searchDir
-	exclude = "Y" if root.excludeCheckVariable.get() else "N"
+	RunReslotter(False)
+def Reconfig():
+	RunReslotter(True)
 
-	sources=[]
-	targets=[]
+def RunReslotter(onlyConfig=False):
+	root.withdraw()
+	fighter = root.comboFighter.get()
+	exclude = (root.excludeCheckVariable.get() and not onlyConfig)
+
+	sources=[""]*len(root.sources)
+	targets=[""]*len(root.targets)
 	usesAdditional=False
 
+	targetName = ""
+	knownTargets = 0
 	#for each potential source, check if the UI exists for it. Then pair them together by source:target
-	for i in range(root.maxSources):
-		if (root.comboTargets[i] == None):
-			continue
-		sources.append("c0"+str(i))
-		targetText = root.comboTargets[i].get()
-		targets.append(targetText.replace("+",""))
-		if ("+" in targetText):
-			usesAdditional=True
+	for i in range(len(root.sources)):
+		sourceText = root.sources[i]["text"]
+		sources[i] = sourceText.replace("+","")
 
+		#get the cXX name of the target
+		targetText = root.targets[i].get()
+		#Replace it if doing reconfig
+		if (onlyConfig):
+			targetText = "c0"+str(i)
+		#Else If TargetText is empty, either append blank or append the same slot based on excluding
+		elif (not "c" in targetText) and not onlyConfig:
+			if (exclude):
+				continue
+			else:
+				targetText = sourceText
+
+		#Check if we're using added slots, then remove the +
+		if ("+" in targetText) or (i>7 and onlyConfig):
+			usesAdditional=True
+		targetText = targetText.replace("+","")
+
+		#For only 3 slots, append their slotid to the name of the new folder
+		if (knownTargets<4):
+			targetName=targetName+" "+targetText
+			knownTargets+=1
+
+		targets[i] = targetText
+
+	#Return if there are no targets selected and we are reslotting
+	if (len(targets)==0 and not onlyConfig):
+		messagebox.showwarning(root.title(),"No targets slots are selected!")
+		return
+
+	print(targets)
+
+	#set directory to clone everything to, or keep it the same
+	targetName = " ("+targetName[1:]
+	targetDir = root.searchDir+targetName+")" if (not onlyConfig) else root.searchDir
 	root.popup.destroy()
 
-	# usesAegis=fighter == "eflame" or fighter=="elight"
-	# if (usesAdditional and usesAegis):
-	# 	messagebox.showerror(root.title(),"Aegis cannot be reslotted to additional slots")
-	# 	root.destroy()
-	# 	sys.exit("success")
-
+	#create target directory
+	try:
+		os.makedirs(targetDir)
+	except:
+		pass
 
 	succeeded=False
 	config = {
@@ -299,27 +333,21 @@ def Reslot():
         "share-to-added": {},
         "new-dir-files": {}
     }
-
-	if (not exclude):
-		shutil.copy(root.searchDir,targetDir)
-
 	reslotter.init(root.hashes)
 
-	for i in range(len(sources)):
+	for i in range(len(root.sources)):
 		source = sources[i]
 		target = targets[i]
-		print(source+"/"+target)
-		if (target == ""):
+		if (target == "" and exclude):
 			continue
 		# elif (source==target and clone==False):
 		# 	continue
 
-		configCall = "N" if usesAdditional else "Y"
-		subcall = ["reslotter.py",root.searchDir,root.hashes,fighter,source,target,targetDir,"Y",configCall]
-		print("Change "+fighter+"'s "+source+" mod to "+target)
-
+		#excludeCall = "Y" if exclude else "N"
+		subcall = ["reslotter.py",root.searchDir,root.hashes,fighter,source,target,targetDir,"N"]
+		print("Changing "+fighter+"'s "+source+" mod to "+target+"...")
 		try:
-			reslotter.main(subcall[1],subcall[2],subcall[3],subcall[4],subcall[5],subcall[6],subcall[7],subcall[8])
+			reslotter.main(subcall[1],subcall[2],subcall[3],subcall[4],subcall[5],subcall[6],subcall[7])
 			succeeded=True
 		except IndexError:
 			reslotter.usage()
@@ -346,7 +374,7 @@ def main():
 	Init()
 	InitSearch()
 	SetFighter()
-	ReslotPopUp()
+	RunReslotterPopUp()
 
 main()
 root.mainloop()

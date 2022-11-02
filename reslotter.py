@@ -7,7 +7,7 @@ import json
 import re
 
 def usage():
-    print("usage: python reslotter.py <mod_directory> <hashes_file> <fighter_name> <current_alt> <target_alt> <out_directory> <exclude other alts (Y/N)> <create config (Y/N)>")
+    print("usage: python reslotter.py <mod_directory> <hashes_file> <fighter_name> <current_alt> <target_alt> <out_directory> <exclude other alts (Y/N)>")
     sys.exit(2)
 
 def makeDirsFromFile(path):
@@ -201,7 +201,7 @@ def addSharedFiles(src_files, source_color, target_color):
         if new_file_path not in resulting_config[share_to][file_path]:
             resulting_config[share_to][file_path].append(new_file_path)
 
-def main(mod_directory, hashes_file, fighter_name, current_alt, target_alt, out_dir,exclude,createConfig):
+def main(mod_directory, hashes_file, fighter_name, current_alt, target_alt, out_dir,exclude):
     # get all of the files the mod modifies
     fighter_files = find_fighter_files(mod_directory)
 
@@ -211,15 +211,6 @@ def main(mod_directory, hashes_file, fighter_name, current_alt, target_alt, out_
     # reslot the files we use
     reslotted_files, fighter_files = reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, out_dir, fighter_name,exclude)
 
-    #create configJson file
-    # if (createConfig=="Y"):
-    #     config = make_config(reslotted_files,known_files,fighter_name,current_alt,target_alt)
-
-    #     writeLocation = out_dir + '/config.json'
-    #     writeFile = open(writeLocation,'w')
-    #     writeFile.close()
-    #     with open(writeLocation, 'w', encoding='utf-8') as f:
-    #         json.dump(config, f, ensure_ascii=False, indent=4)
 
 def init(hashes_file):
     # load dir_info_with_files_trimmed.json for dir addition config gen
@@ -247,6 +238,6 @@ def init(hashes_file):
 
 if __name__ == "__main__":
     try:
-        main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6],sys.argv[7],sys.argv[8])
+        main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6],sys.argv[7])
     except IndexError:
         usage()
