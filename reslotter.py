@@ -201,6 +201,9 @@ def addSharedFiles(src_files, source_color, target_color):
             continue
         if file_path.replace(r"/c0[0-9]/", source_color) in used_files:
             continue
+        #Force prevent c00 being shared
+        if not source_color in file_path:
+            continue
         used_files.append(file_path)
 
         new_file_path = re.sub(r"c0[0-9]", target_color, file_path, 1)
