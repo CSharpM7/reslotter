@@ -34,8 +34,8 @@ You will need to have an editted `ui_chara_db.prc` in order to see additional sl
 ### Generating Configs
 Similar to [LazyConfig](https://github.com/CSharpM7/SharpSmashSuite/tree/main/LazyConfig), this will create a `config.json` file in your mod folder without changing any of the files, useful for when you are creating a mod that uses additional slots, or if you accidentally deleted the `config.json` file. Click on "Reconfig" to use this option.
 
-
 ## Known Issues
-
+- Only one fighter at a time can be reslotted, so if you have Marth and Mario in a mod pack, you can only reslot Marth **OR** Mario
+ - Aegis (Pyra and Mythra), Ice Climbers (Popo and Nana), and Pokemon Trainer (Trainer and their Pokemon) will all be reslotted together. So if you have a Pyra and Mythra skin on c00, they'll both migrate to c08 or whichever slot you are targeting
 - Not all fighter's one-slotted effects work
 - Not all fighter's `New Max Slots` option has been tested
