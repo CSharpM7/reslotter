@@ -39,3 +39,7 @@ Similar to [LazyConfig](https://github.com/CSharpM7/SharpSmashSuite/tree/main/La
  - Aegis (Pyra and Mythra), Ice Climbers (Popo and Nana), and Pokemon Trainer (Trainer and their Pokemon) will all be reslotted together. So if you have a Pyra and Mythra skin on c00, they'll both migrate to c08 or whichever slot you are targeting
 - Not all fighter's one-slotted effects work
 - Not all fighter's `New Max Slots` option has been tested
+
+## Missing Hashes
+If a fighter is reslotted to c0(n mod 8) where n is the desired slot (in this case, Pyra being slotted to 10 ), these animations will be missing. You'll have to edit the `hashes_all.txt` file and add them heere
+- `fighter/eflame/motion/body/c02/c04attackhi4.nuanmb` (Pyra Upsmash)
