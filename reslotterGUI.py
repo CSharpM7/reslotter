@@ -246,8 +246,10 @@ def CreateMainWindow():
 	root.header.pack(side = TOP, fill=X)
 	UpdateHeader()
 
-	root.comboFighter = ttk.Combobox(root, width = 8)
+	root.strFighter = StringVar(name="")
+	root.comboFighter = ttk.Combobox(root,textvar=root.strFighter, width = 8)
 	root.comboFighter.pack()
+	root.strFighter.trace_add('write',OnFighterChange)
 
 	frame = Frame(root)
 	frame.pack(pady=5)
@@ -306,8 +308,21 @@ def RefreshMainWindow():
 	root.UnsavedChanges=False
 	UpdateHeader()
 	root.comboFighter['values'] = [f for f in root.fighters]
+	#This automatically calls RefreshSlotWindow
 	root.comboFighter.current(0)
 
+	#Info about reslotting unique cases
+	if (root.comboFighter['values'][0] in Climber):
+		messagebox.showinfo(root.title(),"Popo and Nana will both be reslotted with the same parameters")
+	if (root.comboFighter['values'][0] in Trainer):
+		messagebox.showinfo(root.title(),"Trainer and their pokemon will all be reslotted with the same parameters")
+	if (root.comboFighter['values'][0] in Aegis):
+		messagebox.showinfo(root.title(),"Pyra, Mythra and Rex will all be reslotted with the same parameters")
+	
+def OnFighterChange(*args):
+	RefreshSlotWindow()
+
+def RefreshSlotWindow():
 	for widget in root.frameCombos.winfo_children():
 		widget.destroy()
 
