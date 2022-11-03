@@ -23,6 +23,8 @@ Go to the releases tab and download the exe. Place that exe in it's own folder. 
 
 ## Usage
 
+You can run the `.py` or `.exe` folder using `reslotterGUI.py/exe [mod folder]`. The mod folder argument is optional. You can also drag and drop your mod folder ontop of the application.
+
 Select the root of your mod's folder. You'll be presented with the GUI at the top of this README. It will populate the list with all the alts in that mod. Copy to New Folder will create a new folder with the new alts in the title (Shiny Blue DK (c03)). Exclude Other Alts is for packs with multiple alts in it. Leave it on to only have the changed alts in the new folder. Leave it unchecked to bring all alts into the new folder, changed or not. 
 
 ### Changing Slots

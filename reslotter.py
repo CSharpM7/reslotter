@@ -7,7 +7,7 @@ import json
 import re
 
 def usage():
-    print("usage: python reslotter.py <mod_directory> <hashes_file> <fighter_name> <current_alt> <target_alt> <out_directory> <exclude other alts (Y/N)>")
+    print("usage: python reslotter.py <mod_directory> <hashes_file> <fighter_name> <current_alt> <target_alt> <out_directory> <exclude other alts (Y/N)> ")
     sys.exit(2)
 
 def makeDirsFromFile(path):
@@ -86,15 +86,6 @@ def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, 
                 if new_file.__contains__("_" + key + "_") and target_alt != current_alt :
                     makeDirsFromFile(os.path.join(out_dir, new_file))
                     shutil.copy(os.path.join(mod_directory, file), os.path.join(out_dir, new_file))
-
-        #elif file.startswith("ui/replace_patch/chara"):
-        #    lookfor = f"{current_alt.strip('c')}.bntx"
-        #    replace = f"{target_alt.strip('c')}.bntx"
-        #    new_file = file.replace(lookfor, replace)
-
-        #    if new_file.__contains__("_" + fighter_name + "_") and target_alt != current_alt :
-        #        makeDirsFromFile(os.path.join(out_dir, new_file))
-        #        shutil.copy(os.path.join(mod_directory, file), os.path.join(out_dir, new_file))
 
         elif file.startswith("sound/bank/fighter"):
             lookfor = f"_{current_alt}"
@@ -226,6 +217,10 @@ def addSharedFiles(src_files, source_color, target_color):
         if new_file_path not in resulting_config[share_to][file_path]:
             resulting_config[share_to][file_path].append(new_file_path)
 
+def RecursiveRewrite(info,current_alt,target_alt):
+    print(info.replace(current_alt,target_alt))
+    return info.replace(current_alt,target_alt)
+
 def main(mod_directory, hashes_file, fighter_name, current_alt, target_alt, out_dir,exclude):
     # get all of the files the mod modifies
     #fighter_files = find_fighter_files(mod_directory)
@@ -233,25 +228,37 @@ def main(mod_directory, hashes_file, fighter_name, current_alt, target_alt, out_
     # make the out directory if it doesn't exist
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
-    # reslot the files we use
+
     reslotted_files, new_fighter_files = reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, out_dir, fighter_name,exclude)
 
 
-def init(hashes_file,mod_directory):
+def init(hashes_file,mod_directory,newConfig):
     # load dir_info_with_files_trimmed.json for dir addition config gen
     global dirs_data
     global file_array
     global existing_files
+    global existing_config
     global resulting_config
     global fighter_files
     fighter_files = find_fighter_files(mod_directory)
-    resulting_config = {
+    existing_config = {
         "new-dir-infos": [],
         "new-dir-infos-base": {},
         "share-to-vanilla": {},
         "share-to-added": {},
         "new-dir-files": {}
     }
+    #If there's an existing config, load it into existing_config to be transferred to resulting_config
+    if (not newConfig):
+        existing_config_file = mod_directory + "/config.json"
+        if (os.path.isfile(existing_config_file)):
+            with open(existing_config_file, "r") as f:
+                config = json.load(f)
+                existing_config = config
+                f.close()
+
+    resulting_config = existing_config
+
     existing_files = []
     # get all of the files in SSBU's Filesystem
     global known_files

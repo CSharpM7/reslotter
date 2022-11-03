@@ -41,13 +41,30 @@ if (not os.path.isfile(os.getcwd() + r"\config.ini")):
 config.read('config.ini')
 
 
-def Init():
+def Init(args):
+
+	#Check for hashes_all.txt
 	root.hashes= os.getcwd() +"/Hashes_all.txt"
 	if (not os.path.isfile(root.hashes)):
 		messagebox.showerror(root.title(),"Hashes_all.txt does not exist in this directory")
 		webbrowser.open("https://github.com/ultimate-research/archive-hashes/blob/master/Hashes_all")
 		root.destroy()
 		sys.exit("no hashes")
+
+	#Load mod via drag n drop if possible
+	if (len(args)>1):     
+		if (not IsValidSearch(args[1])): 
+			messagebox.showerror(root.title(),"Dropped folder is not a valid mod folder!")
+		else:
+			config.set("DEFAULT","searchDir",args[1])
+			root.searchDir = args[1]
+			with open('config.ini', 'w+') as configfile:
+				config.write(configfile)
+			return
+
+	if (InitSearch(args)==False):
+		root.destroy(searchDir)
+		sys.exit("exited prompt or folder does not exist")
 
 
 #open folder dialogue
@@ -67,6 +84,8 @@ def SetsearchDir(firstLoad=True):
 
 #make sure that it is a validated search folder, otherwise quit
 def IsValidSearch(searchDir):
+	if (not os.path.isdir(searchDir)):
+		return
 	whitelist = ["fighter","sound","ui"]
 	subfolders = [f.path for f in os.scandir(searchDir) if f.is_dir()]
 	for dirname in list(subfolders):
@@ -239,7 +258,8 @@ def CreateMainWindow():
 	buttons = Frame(root,width = 8)
 	buttons.pack(side = BOTTOM,pady=10)
 	button = Button(buttons, text="Change Slots", command=Reslot).pack(side = LEFT,padx=5)
-	button = Button(buttons, text="Reconfig", command=Reconfig).pack(side = RIGHT,padx=5)
+	root.configButton = Button(buttons, text="Reconfig", command=Reconfig)
+	root.configButton.pack(side = RIGHT,padx=5)
 
 	prcEntry = Frame(root)
 	prcEntry.pack(side = BOTTOM)
@@ -341,6 +361,9 @@ def RefreshMainWindow():
 		strTarget.trace_add('write',OnTargetChange)
 		comboTarget.pack(side = RIGHT)
 		root.targets.append(comboTarget)
+
+		configText = "Rewrite Config" if (os.path.isfile(root.searchDir + "/config.json")) else "Create Config"
+		root.configButton.config(text=configText)
 
 	root.minsize(175, 130+len(root.targets)*30)
 
@@ -491,15 +514,20 @@ def RunReslotter(onlyConfig=False):
 		pass
 
 	succeeded=False
-	config = {
-        "new-dir-infos": [],
-        "new-dir-infos-base": {},
-        "share-to-vanilla": {},
-        "share-to-added": {},
-        "new-dir-files": {}
-    }
-	reslotter.init(root.hashes,root.searchDir)
+	
+	#Warm up the reslotter
+	if (os.path.isfile(root.searchDir+"/config.json") and not onlyConfig):
+		#At the moment, this program can only append entries, rather than 
+		res = messagebox.askquestion(root.title(), "This mod already has a config.json. Would you like to generate a new one?"
+			"\n(If no, this will add on to the current config, which would increase the config's filesize)"
+			)
+		if (res != "yes" and res != "no"):
+			return
+		reslotter.init(root.hashes,root.searchDir,res == 'yes')
+	else:
+		reslotter.init(root.hashes,root.searchDir,onlyConfig)
 
+	#Populate with more fighters for these unique cases
 	fighters = [currentFighter]
 	if (currentFighter in Climber):
 		fighters= Climber
@@ -514,8 +542,6 @@ def RunReslotter(onlyConfig=False):
 			target = targets[i]
 			if (target == "" and exclude==True):
 				continue
-			# elif (source==target and clone==False):
-			# 	continue
 
 			#excludeCall = "Y" if exclude else "N"
 			subcall = ["reslotter.py",root.searchDir,root.hashes,fighter,source,target,targetDir,"Y"]
@@ -552,13 +578,11 @@ def quit():
 	root.destroy()
 	sys.exit("user exited")
 
-def main():
-	Init()
-	if (InitSearch()==False):
-		root.destroy(searchDir)
-		sys.exit("exited prompt or folder does not exist")
+def main(args):
+	Init(args)
 	SetFighter()
 	CreateMainWindow()
 
-main()
+
+main(sys.argv)
 root.mainloop()
