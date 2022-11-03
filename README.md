@@ -41,5 +41,5 @@ Similar to [LazyConfig](https://github.com/CSharpM7/SharpSmashSuite/tree/main/La
 - Not all fighter's `New Max Slots` option has been tested
 
 ## Missing Hashes
-If a fighter is reslotted to c0(n mod 8) where n is the desired slot (in this case, Pyra being slotted to 10 ), these animations will be missing. You'll have to edit the `hashes_all.txt` file and add them heere
+If a fighter is reslotted to (n mod 8) where n is the desired slot (in this case, Pyra being slotted to 10 ), these files will be missing. You'll have to edit the `hashes_all.txt` file and add them here, or grab the latest Hashes.txt
 - `fighter/eflame/motion/body/c02/c04attackhi4.nuanmb` (Pyra Upsmash)
