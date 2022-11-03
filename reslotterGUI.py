@@ -476,6 +476,7 @@ def RunReslotter(onlyConfig=False):
 		#Else If TargetText is empty, either append blank or append the same slot based on excluding
 		elif (not "c" in targetText) and not onlyConfig:
 			if (exclude):
+				targets[i] = ""
 				continue
 			else:
 				targetText = sourceText
@@ -503,9 +504,12 @@ def RunReslotter(onlyConfig=False):
 
 	root.withdraw()
 	print(targets)
-	#set directory to clone everything to, or keep it the same
+	#set directory to clone everything to, keep it the same, or use a temp folder
 	targetName = " ("+targetName[1:]
-	targetDir = root.searchDir+targetName+")" if (not onlyConfig) else root.searchDir
+	if (onlyConfig):
+		targetDir = root.searchDir
+	else:
+		targetDir = root.searchDir+targetName+")" if (clone) else root.searchDir+" (Temp)"
 
 	#create target directory
 	try:
@@ -543,7 +547,10 @@ def RunReslotter(onlyConfig=False):
 			if (target == "" and exclude==True):
 				continue
 
-			#excludeCall = "Y" if exclude else "N"
+			outdirCall = "" if (onlyConfig) else targetDir
+			##If exclude call is "N", then add a continue line after after try/except. Only after the TODO is finished in reslotter
+			#This would prevent going through each file for n times, instead of going through each file once
+			excludeCall = "N" if (onlyConfig) else "Y"
 			subcall = ["reslotter.py",root.searchDir,root.hashes,fighter,source,target,targetDir,"Y"]
 			print("Changing "+fighter+"'s "+source+" mod to "+target+"...")
 

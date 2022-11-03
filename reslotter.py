@@ -7,7 +7,7 @@ import json
 import re
 
 def usage():
-    print("usage: python reslotter.py <mod_directory> <hashes_file> <fighter_name> <current_alt> <target_alt> <out_directory> <exclude other alts (Y/N)> ")
+    print("usage: python reslotter.py <mod_directory> <hashes_file> <fighter_name> <current_alt> <target_alt> <out_directory> <exclude (Y/N)>")
     sys.exit(2)
 
 def makeDirsFromFile(path):
@@ -41,13 +41,13 @@ def find_fighter_files(mod_directory):
     return all_files
 
 def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, out_dir, fighter_name,exclude):
+    #TODO: If not excluding, only run through fighter_files once. Then properly generate a config
+    #Maybe the fighter_files part should be moved to main()
     reslotted_files = []
     for file in fighter_files:
-        #Exclude will not include any other file outside of the current_alt
-        if (exclude.lower()=="y"):
-            if (not current_alt.strip('c') in file):
-                continue
-
+        #Exclude any other file outside of the current_alt
+        if (not current_alt.strip('c') in file):
+            continue
 
         # Since each directory has a different structure, we have to go through each directory separately
         if file.startswith(f"fighter/{fighter_name}"):
@@ -60,7 +60,7 @@ def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, 
             new_file = file.replace(lookfor, replace)
             
             #Used during "reconfig" to not copy files and simply add to the list of files for the config
-            if target_alt != current_alt :
+            if out_dir != "":
                 makeDirsFromFile(os.path.join(out_dir, new_file))
                 shutil.copy(os.path.join(mod_directory, file), os.path.join(out_dir, new_file))
 
@@ -83,7 +83,7 @@ def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, 
                 fighter_keys = ["elight_first","elight_only"]
 
             for key in fighter_keys:
-                if new_file.__contains__("_" + key + "_") and target_alt != current_alt :
+                if new_file.__contains__("_" + key + "_") and out_dir != "":
                     makeDirsFromFile(os.path.join(out_dir, new_file))
                     shutil.copy(os.path.join(mod_directory, file), os.path.join(out_dir, new_file))
 
@@ -92,7 +92,7 @@ def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, 
             replace = f"_{target_alt}"
             new_file = file.replace(lookfor, replace)
 
-            if target_alt != current_alt :
+            if out_dir != "":
                 makeDirsFromFile(os.path.join(out_dir, new_file))
                 shutil.copy(os.path.join(mod_directory, file), os.path.join(out_dir, new_file))
             reslotted_files.append(new_file)
@@ -100,7 +100,7 @@ def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, 
             lookfor = f"{current_alt.strip('c')}"
             replace = f"{target_alt.strip('c')}"
             new_file = file.replace(lookfor, replace)
-            if target_alt != current_alt :
+            if out_dir != "":
                 makeDirsFromFile(os.path.join(out_dir, new_file))
                 shutil.copy(os.path.join(mod_directory, file), os.path.join(out_dir, new_file))
             reslotted_files.append(new_file)
@@ -229,7 +229,7 @@ def main(mod_directory, hashes_file, fighter_name, current_alt, target_alt, out_
     #fighter_files = find_fighter_files(mod_directory)
 
     # make the out directory if it doesn't exist
-    if not os.path.exists(out_dir):
+    if (not os.path.exists(out_dir)) and out_dir!="":
         os.mkdir(out_dir)
 
     reslotted_files, new_fighter_files = reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, out_dir, fighter_name,exclude)
