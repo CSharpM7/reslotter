@@ -7,7 +7,7 @@ import json
 import re
 
 def usage():
-    print("usage: python reslotter.py <mod_directory> <hashes_file> <fighter_name> <current_alt> <target_alt> <share_slot> <out_directory> <exclude (Y/N)>")
+    print("usage: python reslotter.py <mod_directory> <hashes_file> <fighter_name> <current_alt> <target_alt> <share_slot> <out_directory>")
     sys.exit(2)
 
 def makeDirsFromFile(path):
@@ -40,21 +40,19 @@ def find_fighter_files(mod_directory):
                         all_files.append(toAppend)
     return all_files
 
-def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, share_slot, out_dir, fighter_name,exclude):
+def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, share_slot, out_dir, fighter_name):
     #TODO: If not excluding, only run through fighter_files once. Then properly generate a config
     #Maybe the fighter_files part should be moved to main()
     reslotted_files = []
     for file in fighter_files:
         #Exclude any other file outside of the current_alt
-        if (exclude):
-            if (not current_alt.strip('c') in file):
-                continue
+        if (not current_alt.strip('c') in file):
+            continue
 
         # Since each directory has a different structure, we have to go through each directory separately
         if file.startswith(f"fighter/{fighter_name}"):
-            if (exclude.lower()=="y"):
-                if (not "/"+current_alt+"/" in file):
-                    continue
+            if (not "/"+current_alt+"/" in file):
+                continue
             
             lookfor = f"/{current_alt}/"
             replace = f"/{target_alt}/"
@@ -109,12 +107,13 @@ def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, 
     existing_files.extend(reslotted_files)
     if 7 < int(target_alt.strip("c")):
         current_alt_int = int(current_alt.strip("c"))
+        share_alt_int = int(share_slot.strip("c")) % 8
         if current_alt_int <= 7:
-            add_new_slot(f"fighter/{fighter_name}", current_alt, target_alt,share_slot)
+            add_new_slot(f"fighter/{fighter_name}", current_alt, target_alt,"c0"+str(share_alt_int))
             add_missing_files(reslotted_files, fighter_name, target_alt,True)
         else:
             current_alt_int = int(target_alt.strip("c")) % 8
-            add_new_slot(f"fighter/{fighter_name}", f"c0{current_alt_int}", target_alt,share_slot)
+            add_new_slot(f"fighter/{fighter_name}", f"c0{current_alt_int}", target_alt,"c0"+str(share_alt_int))
             add_missing_files(reslotted_files, fighter_name, target_alt,True)
     else:
         add_missing_files(reslotted_files, fighter_name, target_alt)
@@ -230,7 +229,7 @@ def RecursiveRewrite(info,current_alt,target_alt):
     print(info.replace(current_alt,target_alt))
     return info.replace(current_alt,target_alt)
 
-def main(mod_directory, hashes_file, fighter_name, current_alt, target_alt, share_slot,out_dir,exclude):
+def main(mod_directory, hashes_file, fighter_name, current_alt, target_alt, share_slot,out_dir):
     # get all of the files the mod modifies
     #fighter_files = find_fighter_files(mod_directory)
 
@@ -238,7 +237,7 @@ def main(mod_directory, hashes_file, fighter_name, current_alt, target_alt, shar
     if (not os.path.exists(out_dir)) and out_dir!="":
         os.mkdir(out_dir)
 
-    reslotted_files, new_fighter_files = reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, share_slot, out_dir, fighter_name,exclude)
+    reslotted_files, new_fighter_files = reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, share_slot, out_dir, fighter_name)
 
 
 def init(hashes_file,mod_directory,newConfig):
@@ -281,6 +280,6 @@ def init(hashes_file,mod_directory,newConfig):
 
 if __name__ == "__main__":
     try:
-        main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6],sys.argv[7],sys.argv[8])
+        main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6],sys.argv[7])
     except IndexError:
         usage()

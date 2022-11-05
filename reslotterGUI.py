@@ -139,20 +139,34 @@ def InitSearch(firstLoad=True):
     with open('config.ini', 'w+') as configfile:
         config.write(configfile)
 
-def GetFightersFromFolders(folders):
+def GetSlotsFromFolder(folder):
+	foundSlots = []
+	if (not os.path.isdir(folder)):
+		return foundSlots
+
+	#find slots
+	modelfolders = [f.path for f in os.scandir(folder) if f.is_dir()]
+	for m in modelfolders:
+		slots = [f.path for f in os.scandir(m) if f.is_dir()]
+		for s in slots:
+			slot = os.path.basename(s)
+			if not slot in root.slots:
+				foundSlots.append(slot)
+	return foundSlots
+
+def GetFightersFromFolders(folders,fighter=""):
 	fighters = []
 	for folder in folders:
-		fighter = os.path.basename(folder)
-		if (fighter != "common"):
-			fighters.append(fighter)
+		foldername = os.path.basename(folder)
+		if (fighter != "" and foldername != fighter):
+			continue
+		if (foldername != "common"):
+			fighters.append(foldername)
 			#find slots
-			modelfolders = [f.path for f in os.scandir(folder+"/model") if f.is_dir()]
-			for m in modelfolders:
-				slots = [f.path for f in os.scandir(m) if f.is_dir()]
-				for s in slots:
-					slot = os.path.basename(s)
-					if not slot in root.slots:
-						root.slots.append(slot)
+			for s in GetSlotsFromFolder(folder+"/model"):
+				root.slots.append(s)
+			for s in GetSlotsFromFolder(folder+"/motion"):
+				root.slots.append(s)
 	return fighters
 
 def find_nth(haystack, needle, n):
@@ -162,7 +176,7 @@ def find_nth(haystack, needle, n):
         n -= 1
     return start
 
-def GetFightersFromFiles(folders):
+def GetFightersFromFiles(folders,fighter=""):
 	fighters = []
 	for f in folders:
 		if (os.path.basename(f) == "replace" or os.path.basename(f) == "replace_patch"):
@@ -175,21 +189,24 @@ def GetFightersFromFiles(folders):
 				unders = filename.count("_")
 				firstUnder = find_nth(filename,"_",unders-1)
 				secondUnder = find_nth(filename,"_",unders)
-				fighter = filename[firstUnder+1:secondUnder]
+				fightername = filename[firstUnder+1:secondUnder]
 				slot = filename[secondUnder+1:filename.index(".")]
 				if (not "c" in slot):
 					slot = "c"+slot
 
-				if not fighter in fighters:
-					fighters.append(fighter)
+				if (fighter != "" and fightername != fighter):
+					continue
+				if not fightername in fighters:
+					fighters.append(fightername)
 				if not slot in root.slots:
 					root.slots.append(slot)
 
 	return fighters
 	
 #Gets fighters from mod folder
-def SetFighters():
-	root.fighters= []
+def SetFighters(fighter=""):
+	if (fighter==""):
+		root.fighters= []
 	root.slots = []
 	fighters = []
 	fighterFolder = root.searchDir+"/fighter"
@@ -206,15 +223,17 @@ def SetFighters():
 				sys.exit("no fighter")
 			else:
 				soundfolders = [f.path for f in os.scandir(soundFolder) if f.is_dir()]
-				fighters = GetFightersFromFiles(soundfolders)
+				fighters = GetFightersFromFiles(soundfolders,fighter)
 		else:
 			uifolders = [f.path for f in os.scandir(uiFolder) if f.is_dir()]
-			fighters = GetFightersFromFiles(uifolders)
+			fighters = GetFightersFromFiles(uifolders,fighter)
 	else:
 		fighterfolders = [f.path for f in os.scandir(fighterFolder) if f.is_dir()]
-		fighters = GetFightersFromFolders(fighterfolders)
+		fighters = GetFightersFromFolders(fighterfolders,fighter)
 
-	root.fighters = fighters
+	if (fighter==""):
+		fighters.append("all")
+		root.fighters = fighters
 
 #Opens new folder, refreshes window too
 def OpenNewFolder():
@@ -298,7 +317,7 @@ def CreateMainWindow():
 	UpdateHeader()
 
 	root.strFighter = StringVar(name="")
-	root.comboFighter = ttk.Combobox(root,textvar=root.strFighter, width = 8)
+	root.comboFighter = ttk.Combobox(root,textvar=root.strFighter, width = 16)
 	root.comboFighter.pack()
 	root.strFighter.trace_add('write',OnFighterChange)
 
@@ -416,10 +435,11 @@ def RefreshMainWindow():
 		messagebox.showinfo(root.title(),"Pyra, Mythra and Rex will all be reslotted with the same parameters")
 	
 def OnFighterChange(*args):
+	root.currentFighter = root.comboFighter.get().lower()
+	SetFighters(root.currentFighter)
 	RefreshSlotWindow()
 
 def GetAssumedShareSlot(source,fighter):
-	print(fighter)
 	altsLast2 = ["edge","szerosuit","littlemac","mario","metaknight","jack"]
 	altsOdd = ["bayonetta","master","cloud","kamui","popo","nana","ike","shizue","demon",
 	"link","packun","eflame","elight","reflet","wario","wiifit",
@@ -450,11 +470,15 @@ def RefreshSlotWindow():
 	for widget in root.frameCombos.winfo_children():
 		widget.destroy()
 
-	root.sources = []
-	root.targets = []
-	root.shares = []
+	root.UIsources = []
+	root.UItargets = []
+	root.UIshares = []
 	root.strTargets = {}
 	root.strShares = {}
+
+	if (root.comboFighter.get().lower() == "all"):
+		return
+
 	for i in range(root.maxSources):
 		#only use the sources provided
 		textSource = "c%02d" % i
@@ -472,7 +496,7 @@ def RefreshSlotWindow():
 
 		labelSource = Label(comboEntry,text=textSource,width = 6)
 		labelSource.pack(side = LEFT)
-		root.sources.append(labelSource)
+		root.UIsources.append(labelSource)
 
 		separater = Frame(comboEntry,width = 8)
 		separater.pack(side = LEFT)
@@ -493,7 +517,7 @@ def RefreshSlotWindow():
 		comboTarget.current(0)
 		strTarget.trace_add('write',OnTargetChange)
 		comboTarget.pack(side = LEFT)
-		root.targets.append(comboTarget)
+		root.UItargets.append(comboTarget)
 
 		separater = Frame(comboEntry,width = 8)
 		separater.pack(side = LEFT)
@@ -513,12 +537,12 @@ def RefreshSlotWindow():
 		comboShare.current(GetAssumedShareSlot(i%8,root.comboFighter.get().lower()))
 		strShare.trace_add('write',OnShareChange)
 		comboShare.pack(side = LEFT)
-		root.shares.append(comboShare)
+		root.UIshares.append(comboShare)
 
 		configText = "Rewrite Config" if (os.path.isfile(root.searchDir + "/config.json")) else "Create Config"
 		root.configButton.config(text=configText)
 
-	root.minsize(250, 180+len(root.targets)*30)
+	root.minsize(250, 180+len(root.UItargets)*30)
 
 
 def Reslot():
@@ -598,7 +622,9 @@ def CreatePRCXML(fighter,targetDir):
 
 
 def RunReslotter(onlyConfig=False):
-	currentFighter = root.comboFighter.get().lower()
+	if (root.currentFighter == "all"):
+		ReconfigAll()
+		return
 
 	exclude = (root.excludeCheckVariable.get() and not onlyConfig)
 	clone = (root.cloneCheckVariable.get() and not onlyConfig)
@@ -610,25 +636,25 @@ def RunReslotter(onlyConfig=False):
 		if res != 'yes':
 			return
 
-	sources=[""]*len(root.sources)
-	targets=[""]*len(root.targets)
-	shares=[""]*len(root.shares)
+	sources=[""]*len(root.UIsources)
+	targets=[""]*len(root.UItargets)
+	shares=[""]*len(root.UIshares)
 	usesAdditional=False
 
 	targetName = ""
 	knownTargets = 0
 	#for each potential source, check if the UI exists for it. Then pair them together by source:target
-	for i in range(len(root.sources)):
-		sourceText = root.sources[i]["text"]
+	for i in range(len(root.UIsources)):
+		sourceText = root.UIsources[i]["text"]
 		sources[i] = sourceText.replace("+","")
 
-		sharesText = root.shares[i].get()
+		sharesText = root.UIshares[i].get()
 		if ("same" in sharesText):
 			sharesText = sourceText
 		shares[i] = sharesText
 
 		#get the cXX name of the target
-		targetText = root.targets[i].get()
+		targetText = root.UItargets[i].get()
 		#Replace it if doing reconfig
 		if (onlyConfig):
 			targetText = sourceText
@@ -662,24 +688,53 @@ def RunReslotter(onlyConfig=False):
 		return
 
 
-
 	root.withdraw()
 	print(targets)
 	#set directory to clone everything to, keep it the same, or use a temp folder
 	targetName = " ("+targetName[1:]
 	if (onlyConfig):
-		targetDir = root.searchDir
+		root.targetDir = root.searchDir
 	else:
-		targetDir = root.searchDir+targetName+")" if (clone) else root.searchDir+" (Temp)"
+		root.targetDir = root.searchDir+targetName+")" if (clone) else root.searchDir+" (Temp)"
 
 	#create target directory
 	try:
-		os.makedirs(targetDir)
+		os.makedirs(root.targetDir)
 	except:
 		pass
-
-	succeeded=False
 	
+
+	#Populate with more fighters for these unique cases
+	fighters = [root.currentFighter]
+	if (root.currentFighter in Climber):
+		fighters= Climber
+	if (root.currentFighter in Trainer):
+		fighters= Trainer
+	if (root.currentFighter in Aegis):
+		fighters= Aegis
+
+	SubCall(fighters,onlyConfig,sources,targets,shares,exclude,clone)
+
+#This doesn't work atm
+def ReconfigAll():
+	res = messagebox.askquestion(root.title(), "This is experimental, this will also take an extremely long time based on the amount of"
+		" different folders in your mod. Do you want to continue?"
+		)
+	if (res != "yes"):
+		return
+	temp = []
+
+	sources=temp
+	targets=temp
+	shares=temp
+	root.UIsources=sources
+	root.targetDir = root.searchDir
+
+
+	SubCall(root.fighters,True,sources,targets,shares,False,False)
+
+def SubCall(fighters,onlyConfig,sources,targets,shares,exclude,clone):
+
 	#Warm up the reslotter
 	if (os.path.isfile(root.searchDir+"/config.json") and not onlyConfig):
 		#At the moment, this program can only append entries, rather than 
@@ -692,32 +747,47 @@ def RunReslotter(onlyConfig=False):
 	else:
 		reslotter.init(root.hashes,root.searchDir,onlyConfig)
 
-	#Populate with more fighters for these unique cases
-	fighters = [currentFighter]
-	if (currentFighter in Climber):
-		fighters= Climber
-	if (currentFighter in Trainer):
-		fighters= Trainer
-	if (currentFighter in Aegis):
-		fighters= Aegis
-
+	succeeded=False
 	for fighter in fighters:
-		for i in range(len(root.sources)):
+		if fighter == "all":
+			continue
+		elif (root.currentFighter == "all"):
+			root.slots=[]
+			modelFolder = root.searchDir+"/fighter/"+fighter+"/model"
+			motionFolder = root.searchDir+"/fighter/"+fighter+"/motion"
+			if (os.path.isdir(modelFolder)):
+				for s in GetSlotsFromFolder(modelFolder):
+					root.slots.append(s)
+			elif (os.path.isdir(motionFolder)):
+				for s in GetSlotsFromFolder(motionFolder):
+					root.slots.append(s)
+			print(str(len(root.slots)) +" slots found in "+fighter)
+			root.UIsources = []
+			sources=[]
+			targets = []
+			shares = []
+			for s in root.slots:
+				root.UIsources.append(s)
+				sources.append(s)
+				targets.append(s)
+				shares.append(s)
+		for i in range(len(root.UIsources)):
 			source = sources[i]
 			target = targets[i]
 			share = shares[i]
 			if (target == "" and exclude==True):
 				continue
 
-			outdirCall = "" if (onlyConfig) else targetDir
-			##If exclude call is "N", then add a continue line after after try/except. Only after the TODO is finished in reslotter
-			#This would prevent going through each file for n times, instead of going through each file once
-			excludeCall = "N" if (onlyConfig) else "Y"
-			subcall = ["reslotter.py",root.searchDir,root.hashes,fighter,source,target,share,outdirCall,"Y"]
-			print("Changing "+fighter+"'s "+source+" mod to "+target+" using share slot "+share+"...")
+			outdirCall = "" if (onlyConfig) else root.targetDir
+			subcall = ["reslotter.py",root.searchDir,root.hashes,fighter,source,target,share,outdirCall]
+
+			if (onlyConfig):
+				print("Writing config for "+fighter+"'s "+source+" slot")
+			else:
+				print("Changing "+fighter+"'s "+source+" mod to "+target+"...")
 
 			try:
-				reslotter.main(subcall[1],subcall[2],subcall[3],subcall[4],subcall[5],subcall[6],subcall[7],subcall[8])
+				reslotter.main(subcall[1],subcall[2],subcall[3],subcall[4],subcall[5],subcall[6],subcall[7])
 				succeeded=True
 			except IndexError:
 				reslotter.usage()
@@ -728,21 +798,22 @@ def RunReslotter(onlyConfig=False):
 			for e in extras:
 				eFile = root.searchDir + "/"+e
 				if (os.path.isfile(eFile)):
-					shutil.copy(eFile,targetDir+"/"+e)
+					shutil.copy(eFile,root.targetDir+"/"+e)
 
 			if (not clone):
 				shutil.rmtree(root.searchDir)
-				os.rename(targetDir,root.searchDir)
-				targetDir=root.searchDir
+				os.rename(root.targetDir,root.searchDir)
+				root.targetDir=root.searchDir
 
-		CreatePRCXML(currentFighter,targetDir)
+		if (root.currentFighter != "all"):
+			CreatePRCXML(root.currentFighter,root.targetDir)
 
-		newConfigLocation = targetDir + '/config.json'
+		newConfigLocation = root.targetDir + '/config.json'
 		with open(newConfigLocation, 'w+', encoding='utf-8') as f:
 			json.dump(reslotter.resulting_config, f, ensure_ascii=False, indent=4)
 
 		messagebox.showinfo(root.title(),"Finished!")
-		webbrowser.open(targetDir)
+		webbrowser.open(root.targetDir)
 	else:
 		messagebox.showerror(root.title(),"Failed to reslot")
 
