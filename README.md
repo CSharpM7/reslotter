@@ -1,5 +1,5 @@
 # [ReslotterGUI](https://github.com/CSharpM7/reslotter)
-**Version 2**
+**Version 2.5**
 
 ![r](https://i.imgur.com/NWFBCcQ.png)
 
