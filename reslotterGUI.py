@@ -324,8 +324,8 @@ def CreateMainWindow():
 	root.headerShare.pack(side = LEFT, expand=True)
 	root.headerShare_ttp = CreateToolTip(root.headerShare, \
 	'For additional slots, the slot the mod is originally based on.'
-	'\nFor Male/Female fighters, this could be either 0 or 1'
-	'\nFor fighters with other special skins, it depends (ie 0,1,2,3 for Hero or 0/6 for Sephiroth')
+	'\nFor Male/Female fighters, this could be either 0 or 1.'
+	'\nFor fighters with other special skins, it depends (ie 0,1,2,3 for Hero or 0/6 for Sephiroth.')
 
 	frame = Frame(root)
 	frame.pack(pady=5)
@@ -341,8 +341,8 @@ def CreateMainWindow():
 
 	prcEntry = Frame(root)
 	prcEntry.pack(side = BOTTOM)
-	labelPRC = Label(prcEntry,text="New Max Slots")
-	labelPRC.pack(side = LEFT)
+	root.labelPRC = Label(prcEntry,text="New Max Slots")
+	root.labelPRC.pack(side = LEFT)
 	separater = Frame(prcEntry,width = 8)
 	separater.pack(side = LEFT)
 
@@ -354,6 +354,13 @@ def CreateMainWindow():
 	root.comboPRC['values'] = values
 	root.comboPRC.current(0)
 	root.comboPRC.pack(side = RIGHT)
+
+	root.comboPRC_ttp = CreateToolTip(root.labelPRC, \
+	'Sets the new maximum slots on the Character Select Screen.'
+	'\nAt least one mod per fighter will need a "ui/param/database/ui_chara_db.prcxml file. If this is blank, this file will not be included'
+	'\nHaving multiple ui_chara_db.prcxml files for one fighter might have unwanted results.'
+	'\nAlternatively, you can have one mod that has a "ui/param/database/ui_chara_db.prc" file that contains all changes for all fighters.'
+	)
 
 	root.excludeCheckVariable = IntVar(value=1)
 	root.excludeCheck = Checkbutton(root, text='Exclude Blank Targets',variable=root.excludeCheckVariable, onvalue=1, offvalue=0)
@@ -367,6 +374,10 @@ def CreateMainWindow():
 	root.cloneCheckVariable = IntVar(value=1)
 	root.cloneCheck = Checkbutton(root, text='Copy To New Folder',variable=root.cloneCheckVariable, onvalue=1, offvalue=0)
 	root.cloneCheck.pack(side = BOTTOM)
+
+	root.cloneCheck_ttp = CreateToolTip(root.cloneCheck, \
+	'Creates a new folder called "[Mod name] [slots] when changing slots.'
+	'\nIf False, this will overwrite the current folder when changing slots, not entirely recommended...')
 
 
 	#Menubar
@@ -712,10 +723,17 @@ def RunReslotter(onlyConfig=False):
 				reslotter.usage()
 
 	if succeeded:
-		if (not clone and not onlyConfig):
-			shutil.rmtree(root.searchDir)
-			os.rename(targetDir,root.searchDir)
-			targetDir=root.searchDir
+		extras = ["info.toml","preview.webp"]
+		if (not onlyConfig):
+			for e in extras:
+				eFile = root.searchDir + "/"+e
+				if (os.path.isfile(eFile)):
+					shutil.copy(eFile,targetDir+"/"+e)
+
+			if (not clone):
+				shutil.rmtree(root.searchDir)
+				os.rename(targetDir,root.searchDir)
+				targetDir=root.searchDir
 
 		CreatePRCXML(currentFighter,targetDir)
 
