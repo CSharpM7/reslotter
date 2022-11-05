@@ -19,7 +19,7 @@ root.title("")
 root.withdraw()
 root.maxSources = 256
 root.maxSlots = 256
-root.exclusive = True
+root.OnlyUseSlotsInMod = True
 root.UnsavedChanges=False
 
 #Config options
@@ -41,8 +41,19 @@ if (not os.path.isfile(os.getcwd() + r"\config.ini")):
 config.read('config.ini')
 
 
-def Init(args):
+#truncate strings for labels
+def truncate(string,direciton=W,limit=20,ellipsis=True):
+	if (len(string) < 3):
+		return string
+	text = ""
+	addEllipsis = "..." if (ellipsis) else ""
+	if direciton == W:
+		text = addEllipsis+string[len(string)-limit:len(string)]
+	else:
+		text = string[0:limit]+addEllipsis
+	return text
 
+def Init(args):
 	#Check for hashes_all.txt
 	root.hashes= os.getcwd() +"/Hashes_all.txt"
 	if (not os.path.isfile(root.hashes)):
@@ -176,8 +187,8 @@ def GetFightersFromFiles(folders):
 
 	return fighters
 	
-
-def SetFighter():
+#Gets fighters from mod folder
+def SetFighters():
 	root.fighters= []
 	root.slots = []
 	fighters = []
@@ -205,13 +216,11 @@ def SetFighter():
 
 	root.fighters = fighters
 
-	#if ("eflame" in fighters or "elight" in fighters):
-#		messagebox.showwarning(root.title(),"Heads up, Pyra and Mythra cannot use additional slots. You might have to double check their UI files, too")
-
+#Opens new folder, refreshes window too
 def OpenNewFolder():
 	if (InitSearch(False) == False):
 		return
-	SetFighter()
+	SetFighters()
 	RefreshMainWindow()
 
 def OpenReadMe():
@@ -219,18 +228,7 @@ def OpenReadMe():
 def OpenGuide():
 	webbrowser.open('https://docs.google.com/document/d/1JQHDcpozZYNbO2IAzgG7GrBWC5OJc1_xfXmMw55pGhM')
 
-#truncate strings for labels
-def truncate(string,direciton=W,limit=20,ellipsis=True):
-	if (len(string) < 3):
-		return string
-	text = ""
-	addEllipsis = "..." if (ellipsis) else ""
-	if direciton == W:
-		text = addEllipsis+string[len(string)-limit:len(string)]
-	else:
-		text = string[0:limit]+addEllipsis
-	return text
-
+#Used to add * with unsaved changes
 def UpdateHeader(newheader="",color="black"):
 	prefix="*" if root.UnsavedChanges else ""
 	workspace= "("+os.path.basename(root.searchDir)+")"
@@ -239,6 +237,59 @@ def UpdateHeader(newheader="",color="black"):
 		newheader = " - "+newheader
 
 	root.header.config(text = prefix+workspace+newheader, fg = color)
+
+class CreateToolTip(object):
+    """
+    create a tooltip for a given widget
+    """
+    def __init__(self, widget, text='widget info'):
+        self.waittime = 500     #miliseconds
+        self.wraplength = 280   #pixels
+        self.widget = widget
+        self.text = text
+        self.widget.bind("<Enter>", self.enter)
+        self.widget.bind("<Leave>", self.leave)
+        self.widget.bind("<ButtonPress>", self.leave)
+        self.id = None
+        self.tw = None
+
+    def enter(self, event=None):
+        self.schedule()
+
+    def leave(self, event=None):
+        self.unschedule()
+        self.hidetip()
+
+    def schedule(self):
+        self.unschedule()
+        self.id = self.widget.after(self.waittime, self.showtip)
+
+    def unschedule(self):
+        id = self.id
+        self.id = None
+        if id:
+            self.widget.after_cancel(id)
+
+    def showtip(self, event=None):
+        x = y = 0
+        x, y, cx, cy = self.widget.bbox("insert")
+        x += self.widget.winfo_rootx() + 25
+        y += self.widget.winfo_rooty() + 20
+        # creates a toplevel window
+        self.tw = Toplevel(self.widget)
+        # Leaves only the label and removes the app window
+        self.tw.wm_overrideredirect(True)
+        self.tw.wm_geometry("+%d+%d" % (x, y))
+        label = Label(self.tw, text=self.text, justify='left',
+                       background="#ffffff", relief='solid', borderwidth=1,
+                       wraplength = self.wraplength)
+        label.pack(ipadx=1)
+
+    def hidetip(self):
+        tw = self.tw
+        self.tw= None
+        if tw:
+            tw.destroy()
 
 def CreateMainWindow():
 	root.deiconify()
@@ -251,11 +302,36 @@ def CreateMainWindow():
 	root.comboFighter.pack()
 	root.strFighter.trace_add('write',OnFighterChange)
 
+	headerText = Frame(root)
+	headerText.pack()
+	root.headerSource = Label(headerText,text="Current\nSlot",width = 8)
+	root.headerSource.pack(side = LEFT, expand=True)
+	root.headerSource_ttp = CreateToolTip(root.headerSource, \
+	'The slot the mod is currently on')
+
+	separater = Frame(headerText,width = 8)
+	separater.pack(side = LEFT)
+
+	root.headerTarget = Label(headerText,text="New\nSlot",width = 8)
+	root.headerTarget.pack(side = LEFT, expand=True)
+	root.headerTarget_ttp = CreateToolTip(root.headerTarget, \
+	'The slot you want the mod to go on')
+
+	separater = Frame(headerText,width = 8)
+	separater.pack(side = LEFT)
+
+	root.headerShare = Label(headerText,text="Share\nFrom", width = 10)
+	root.headerShare.pack(side = LEFT, expand=True)
+	root.headerShare_ttp = CreateToolTip(root.headerShare, \
+	'For additional slots, the slot the mod is originally based on.'
+	'\nFor Male/Female fighters, this could be either 0 or 1'
+	'\nFor fighters with other special skins, it depends (ie 0,1,2,3 for Hero or 0/6 for Sephiroth')
+
 	frame = Frame(root)
 	frame.pack(pady=5)
 
 	root.frameCombos = Frame(frame)
-	root.frameCombos.pack(side = TOP,padx=5)
+	root.frameCombos.pack(padx=5)
 	
 	buttons = Frame(root,width = 8)
 	buttons.pack(side = BOTTOM,pady=10)
@@ -280,8 +356,14 @@ def CreateMainWindow():
 	root.comboPRC.pack(side = RIGHT)
 
 	root.excludeCheckVariable = IntVar(value=1)
-	root.excludeCheck = Checkbutton(root, text='Exclude Other Alts',variable=root.excludeCheckVariable, onvalue=1, offvalue=0)
+	root.excludeCheck = Checkbutton(root, text='Exclude Blank Targets',variable=root.excludeCheckVariable, onvalue=1, offvalue=0)
 	root.excludeCheck.pack(side = BOTTOM)
+
+	root.excludeCheck_ttp = CreateToolTip(root.excludeCheck, \
+	'Controls what happens when you leave a "New Slot" blank.'
+	'\nIf True, will ignore any blank slot and not move them to the new folder'
+	'\nIf False, will include any blank slot, setting it to whatever is its "Current Slot"')
+
 	root.cloneCheckVariable = IntVar(value=1)
 	root.cloneCheck = Checkbutton(root, text='Copy To New Folder',variable=root.cloneCheckVariable, onvalue=1, offvalue=0)
 	root.cloneCheck.pack(side = BOTTOM)
@@ -303,6 +385,9 @@ def CreateMainWindow():
 def OnTargetChange(*args):
 	root.UnsavedChanges=True
 	UpdateHeader()
+def OnShareChange(*args):
+	root.UnsavedChanges=True
+	UpdateHeader()
 
 def RefreshMainWindow():
 	root.UnsavedChanges=False
@@ -322,17 +407,47 @@ def RefreshMainWindow():
 def OnFighterChange(*args):
 	RefreshSlotWindow()
 
+def GetAssumedShareSlot(source,fighter):
+	print(fighter)
+	altsLast2 = ["edge","szerosuit","littlemac","mario","metaknight","jack"]
+	altsOdd = ["bayonetta","master","cloud","kamui","popo","nana","ike","shizue","demon",
+	"link","packun","eflame","elight","reflet","wario","wiifit",
+	"ptrainer","ptrainer_low","pfushigisou","plizardon","pzenigame"]
+	altsAll = ["koopajr","murabito","purin","pikachu","pichu","sonic"]
+	if fighter == "brave" or fighter == "trail":
+		return source % 4
+	elif fighter == "pikmin":
+		return 0 if (source<4) else 4
+	elif fighter == "pacman":
+		return 0 if (source==0 or source==7) else source
+	elif fighter == "ridley":
+		return 0 if (source==1 or source==7) else source
+	elif fighter == "inkling" or fighter=="pickel":
+		return source%2 if source<6 else source
+	elif fighter == "shulk":
+		return 0 if source<7 else 7
+	elif fighter in altsLast2:
+		return 0 if source<6 else source
+	elif fighter in altsAll:
+		return source
+	elif fighter in altsOdd:
+		return source % 1
+	else:
+		return 0
+
 def RefreshSlotWindow():
 	for widget in root.frameCombos.winfo_children():
 		widget.destroy()
 
 	root.sources = []
 	root.targets = []
+	root.shares = []
 	root.strTargets = {}
+	root.strShares = {}
 	for i in range(root.maxSources):
 		#only use the sources provided
 		textSource = "c%02d" % i
-		if (not textSource in root.slots) and (root.exclusive):
+		if (not textSource in root.slots) and (root.OnlyUseSlotsInMod):
 			continue
 		if (i>=8):
 			textSource = "+"+textSource
@@ -340,19 +455,11 @@ def RefreshSlotWindow():
 		strSource = StringVar()
 		strTarget = StringVar()
 
-		#Add a header before listing each source
-		if (i==0):
-			headerText = Frame(root.frameCombos)
-			headerText.pack(side = TOP)
-			headerSource = Label(headerText,text="Source")
-			headerSource.pack(side = LEFT)
-			headerTarget = Label(headerText,text="Target", width = 8)
-			headerTarget.pack(side = RIGHT)
 
 		comboEntry = Frame(root.frameCombos)
 		comboEntry.pack()
 
-		labelSource = Label(comboEntry,text=textSource)
+		labelSource = Label(comboEntry,text=textSource,width = 6)
 		labelSource.pack(side = LEFT)
 		root.sources.append(labelSource)
 
@@ -374,13 +481,33 @@ def RefreshSlotWindow():
 		comboTarget['values'] = values
 		comboTarget.current(0)
 		strTarget.trace_add('write',OnTargetChange)
-		comboTarget.pack(side = RIGHT)
+		comboTarget.pack(side = LEFT)
 		root.targets.append(comboTarget)
+
+		separater = Frame(comboEntry,width = 8)
+		separater.pack(side = LEFT)
+
+		root.strShares.update({textSource:StringVar(name="")})
+		strShare= root.strShares[textSource]
+		#Add possible combo select values
+		comboShare = ttk.Combobox(comboEntry,textvar=strShare, width = 8)
+		shares = []
+		m=0
+		for m in range(8):
+			textSlot = "c%02d" % m
+			#add + to additional slots
+			shares.append(textSlot)
+
+		comboShare['values'] = shares
+		comboShare.current(GetAssumedShareSlot(i%8,root.comboFighter.get().lower()))
+		strShare.trace_add('write',OnShareChange)
+		comboShare.pack(side = LEFT)
+		root.shares.append(comboShare)
 
 		configText = "Rewrite Config" if (os.path.isfile(root.searchDir + "/config.json")) else "Create Config"
 		root.configButton.config(text=configText)
 
-	root.minsize(175, 130+len(root.targets)*30)
+	root.minsize(250, 180+len(root.targets)*30)
 
 
 def Reslot():
@@ -474,6 +601,7 @@ def RunReslotter(onlyConfig=False):
 
 	sources=[""]*len(root.sources)
 	targets=[""]*len(root.targets)
+	shares=[""]*len(root.shares)
 	usesAdditional=False
 
 	targetName = ""
@@ -482,6 +610,11 @@ def RunReslotter(onlyConfig=False):
 	for i in range(len(root.sources)):
 		sourceText = root.sources[i]["text"]
 		sources[i] = sourceText.replace("+","")
+
+		sharesText = root.shares[i].get()
+		if ("same" in sharesText):
+			sharesText = sourceText
+		shares[i] = sharesText
 
 		#get the cXX name of the target
 		targetText = root.targets[i].get()
@@ -516,6 +649,8 @@ def RunReslotter(onlyConfig=False):
 	if (knownTargets==0 and not onlyConfig):
 		messagebox.showwarning(root.title(),"No targets slots are selected!")
 		return
+
+
 
 	root.withdraw()
 	print(targets)
@@ -559,6 +694,7 @@ def RunReslotter(onlyConfig=False):
 		for i in range(len(root.sources)):
 			source = sources[i]
 			target = targets[i]
+			share = shares[i]
 			if (target == "" and exclude==True):
 				continue
 
@@ -566,11 +702,11 @@ def RunReslotter(onlyConfig=False):
 			##If exclude call is "N", then add a continue line after after try/except. Only after the TODO is finished in reslotter
 			#This would prevent going through each file for n times, instead of going through each file once
 			excludeCall = "N" if (onlyConfig) else "Y"
-			subcall = ["reslotter.py",root.searchDir,root.hashes,fighter,source,target,targetDir,"Y"]
-			print("Changing "+fighter+"'s "+source+" mod to "+target+"...")
+			subcall = ["reslotter.py",root.searchDir,root.hashes,fighter,source,target,share,outdirCall,"Y"]
+			print("Changing "+fighter+"'s "+source+" mod to "+target+" using share slot "+share+"...")
 
 			try:
-				reslotter.main(subcall[1],subcall[2],subcall[3],subcall[4],subcall[5],subcall[6],subcall[7])
+				reslotter.main(subcall[1],subcall[2],subcall[3],subcall[4],subcall[5],subcall[6],subcall[7],subcall[8])
 				succeeded=True
 			except IndexError:
 				reslotter.usage()
@@ -602,7 +738,7 @@ def quit():
 
 def main(args):
 	Init(args)
-	SetFighter()
+	SetFighters()
 	CreateMainWindow()
 
 
