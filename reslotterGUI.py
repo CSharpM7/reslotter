@@ -416,6 +416,7 @@ def CreateMainWindow():
 def OnTargetChange(*args):
 	root.UnsavedChanges=True
 	UpdateHeader()
+
 def OnShareChange(*args):
 	root.UnsavedChanges=True
 	UpdateHeader()
@@ -555,11 +556,26 @@ def Reslot():
 def Reconfig():
 	RunReslotter(True)
 
-
-
 Climber = ["popo","nana"]
 Trainer = ["ptrainer","ptrainer_low","pzenigame","pfushigisou","plizardon"]
 Aegis = ["element","eflame","elight"]
+
+def Foresight(onlyConfig):
+	res = "yes"
+	usesAdditional = False
+	for i in range(len(root.UIsources)):
+		targetText = root.UItargets[i].get()
+		if ("+" in targetText) or (i>7 and onlyConfig):
+			usesAdditional=True
+	if usesAdditional:
+		if (root.currentFighter == "kirby"):
+			res = "Kirby can cause extremely long load times on the VS screen with additional slots"
+		elif (root.currentFighter in Trainer):
+			res = "Trainer might need their ptrainer_low model in the mod folder to use additional slots"
+	if res != "":
+		res = messagebox.askquestion(root.title(), res+"\nContinue with reslotting?")
+	return res
+
 
 def CreatePRCXML(fighter,targetDir):
 	newColors = [int(s) for s in re.findall(r'\b\d+\b',root.comboPRC.get())]
@@ -629,6 +645,8 @@ def CreatePRCXML(fighter,targetDir):
 def RunReslotter(onlyConfig=False):
 	if (root.currentFighter == "all"):
 		ReconfigAll()
+		return
+	elif (Foresight(onlyConfig)!="yes"):
 		return
 
 	exclude = (root.excludeCheckVariable.get() and not onlyConfig)
