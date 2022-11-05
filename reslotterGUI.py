@@ -718,20 +718,13 @@ def RunReslotter(onlyConfig=False):
 #This doesn't work atm
 def ReconfigAll():
 	res = messagebox.askquestion(root.title(), "This is experimental, this will also take an extremely long time based on the amount of"
-		" different folders in your mod. Do you want to continue?"
+		" added slots in your mod. Do you want to continue?"
 		)
 	if (res != "yes"):
 		return
-	temp = []
 
-	sources=temp
-	targets=temp
-	shares=temp
-	root.UIsources=sources
 	root.targetDir = root.searchDir
-
-
-	SubCall(root.fighters,True,sources,targets,shares,False,False)
+	SubCall(root.fighters,True,[],[],[],False,False)
 
 def SubCall(fighters,onlyConfig,sources,targets,shares,exclude,clone):
 
@@ -770,7 +763,12 @@ def SubCall(fighters,onlyConfig,sources,targets,shares,exclude,clone):
 				root.UIsources.append(s)
 				sources.append(s)
 				targets.append(s)
-				shares.append(s)
+				share = s
+				sAsInt = int(s.strip("c"))
+				if (sAsInt>7):
+					share = "c0"+str(GetAssumedShareSlot(sAsInt% 8,fighter))
+					print("Slot "+str(sAsInt)+" will share from "+share)
+				shares.append(share)
 		for i in range(len(root.UIsources)):
 			source = sources[i]
 			target = targets[i]
