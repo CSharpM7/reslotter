@@ -1,7 +1,7 @@
 # ReslotterGUI
 **Version 2**
 
-![r](https://i.imgur.com/2lWOEEu.png)
+![r](https://i.imgur.com/NWFBCcQ.png)
 
 A GUI tool for reslotting mods. Requires python 3.9+. This will reslot anything under the folders `fighter`,`sound`,`ui`, and `effects` (if applicable)
 
@@ -25,22 +25,26 @@ Go to the releases tab and download the exe. Place that exe in it's own folder. 
 
 You can run the `.py` or `.exe` folder using `reslotterGUI.py/exe [mod folder]`. The mod folder argument is optional. You can also drag and drop your mod folder ontop of the application.
 
-Select the root of your mod's folder. You'll be presented with the GUI at the top of this README. It will populate the list with all the alts in that mod. Copy to New Folder will create a new folder with the new alts in the title (Shiny Blue DK (c03)). Exclude Other Alts is for packs with multiple alts in it. Leave it on to only have the changed alts in the new folder. Leave it unchecked to bring all alts into the new folder, changed or not. 
+Select the root of your mod's folder. You'll be presented with the GUI at the top of this README. You can also hover over most of the labels for additional tool tips. It will populate the list with all the alts in that mod. Copy to New Folder will create a new folder with the new alts in the title (Shiny Blue DK (c03)). Exclude Blank Targets is for packs with multiple alts in it. Leave it on to only have the changed alts in the new folder. Leave it unchecked to bring all alts into the new folder, changed or not. 
 
 ### Changing Slots
 Navigate to which skin corresponds to the source of your mod (if you have Shinny Blue DK on the 3rd alt, it should be `c02`). Under the dropdown menu, select its new destination (ie `c03` for the fourth, blue alt).  Hit Change Slots, and the relevant files/folders will be changed, as well as a new `config.json` will be added.
-### Setting New Max Slots for UI
-You will need to have an editted `ui_chara_db.prc` in order to see additional slots. New Max Slots will create a `.prcxml` which is used to increase the number of slots available in the Character Select Screen after you hit "Change Slots" or "Reconfig". You'll want to set this to the highest slot number in your modpack+1 (if I have Shiny Blue DK on `c10`, I would set the max slots to 11) It is recommended that you only have one of these files per fighter.
+
+### Adding New Slots
+When you set the new slot to anything beyond `c07` (denoted with a + prefix), you are adding slots to the game! This is a slightly more involved process than just changing base slots, so you will need to go to File->Slot Addition Guide to understand how this process works. 
+
+"Share From" is the slot that the mod is based on. For example, a Robin mod on slot `c05` would set Share From to `c00` as both are male alts. A Sephiroth mod on slot `c07` should use `c06` for the shirtless variant. This program will do its best to set this to the optimal slot for each fighter, but you can manually set it if you want to.
+
+### Setting New Max Slots for the Character Select Screen
+New Max Slots will create a `ui_chara_db.prcxml` file in `ui/param/database` which is used to increase the number of slots available in the Character Select Screen after you hit "Change Slots" or "Reconfig". `ui_chara_db.prc` is the file used to control how many slots can be selected on the character select screen, while the .`prcxml` version patches the file in game. You'll want to set this to the highest slot number in your modpack+1 (if I have Shiny Blue DK on `c10`, I would set the max slots to 11) It is recommended that you only have one of these files per fighter.
+
 ### Generating Configs
-Similar to [LazyConfig](https://github.com/CSharpM7/SharpSmashSuite/tree/main/LazyConfig), this will create a `config.json` file in your mod folder without changing any of the files, useful for when you are creating a mod that uses additional slots, or if you accidentally deleted the `config.json` file. Click on "Reconfig" to use this option.
+Similar to [LazyConfig](https://github.com/CSharpM7/SharpSmashSuite/tree/main/LazyConfig), this will create a `config.json` file in your mod folder without changing any of the files, useful for when you are creating a mod that uses additional slots, or if you accidentally deleted the `config.json` file. Click on "Rewrite Config" or "Create Config" to create a `config.json` without reslotting anything
 
 ## Known Issues
-- Added slots mostly work, but for the ones that don't: try hitting rewrite config on the reslotted folder, or using the [original website](https://coolsonickirby.com/arc/dir-info-with-files.html) to regenerate a config
 - Only one fighter at a time can be reslotted, so if you have Marth and Mario in a mod pack, you can only reslot Marth **OR** Mario
  - Aegis (Pyra and Mythra), Ice Climbers (Popo and Nana), and Pokemon Trainer (Trainer and their Pokemon) will all be reslotted together. So if you have a Pyra and Mythra skin on c00, they'll both migrate to c08 or whichever slot you are targeting
+- Added slots mostly work, but for the ones that don't: try hitting rewrite config on the reslotted folder, or using the [original website](https://coolsonickirby.com/arc/dir-info-with-files.html) to regenerate a config
 - Not all fighter's one-slotted effects work
-- Not all fighter's `New Max Slots` option has been tested. Also nothing good could come from setting the fighter to "random" and increasing the max slots
+- Not all fighter's `New Max Slots` option have been tested
 
-## Missing Hashes
-If a fighter is reslotted to (8n+c) where c is the missing hash (for this example, c is c02 so 8n+c would be 10, 18, 26, etc), these files will be missing. You'll have to edit the `hashes_all.txt` file and add them here, or grab the latest Hashes.txt
-- `fighter/eflame/motion/body/c02/c04attackhi4.nuanmb` (Pyra Upsmash)
