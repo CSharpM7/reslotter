@@ -41,6 +41,9 @@ New Max Slots will create a `ui_chara_db.prcxml` file in `ui/param/database` whi
 ### Generating Configs
 Similar to [LazyConfig](https://github.com/CSharpM7/SharpSmashSuite/tree/main/LazyConfig), this will create a `config.json` file in your mod folder without changing any of the files, useful for when you are creating a mod that uses additional slots, or if you accidentally deleted the `config.json` file. Click on "Rewrite Config" or "Create Config" to create a `config.json` without reslotting anything
 
+### Generating Configs For All
+If you have an extremely large mod pack, this tool **might** be able to help! This is still experimental, but if you select "all" from the fighter dropdown list, and hit Rewrite/Create Config, it'll go through every fighter and all their alts and create one big config for that folder.
+
 ## Known Issues
 - Only one fighter at a time can be reslotted, so if you have Marth and Mario in a mod pack, you can only reslot Marth **OR** Mario
  - Aegis (Pyra and Mythra), Ice Climbers (Popo and Nana), and Pokemon Trainer (Trainer and their Pokemon) will all be reslotted together. So if you have a Pyra and Mythra skin on c00, they'll both migrate to c08 or whichever slot you are targeting

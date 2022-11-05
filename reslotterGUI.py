@@ -354,7 +354,8 @@ def CreateMainWindow():
 	
 	buttons = Frame(root,width = 8)
 	buttons.pack(side = BOTTOM,pady=10)
-	button = Button(buttons, text="Change Slots", command=Reslot).pack(side = LEFT,padx=5)
+	root.reslotButton = Button(buttons, text="Change Slots", command=Reslot)
+	root.reslotButton.pack(side = LEFT,padx=5)
 	root.configButton = Button(buttons, text="Reconfig", command=Reconfig)
 	root.configButton.pack(side = RIGHT,padx=5)
 
@@ -476,7 +477,10 @@ def RefreshSlotWindow():
 	root.strTargets = {}
 	root.strShares = {}
 
-	if (root.comboFighter.get().lower() == "all"):
+	reslotText = "normal" if (root.currentFighter != "all") else "disabled"
+	root.reslotButton["state"]=reslotText
+
+	if (root.currentFighter == "all"):
 		return
 
 	for i in range(root.maxSources):
@@ -539,8 +543,9 @@ def RefreshSlotWindow():
 		comboShare.pack(side = LEFT)
 		root.UIshares.append(comboShare)
 
-		configText = "Rewrite Config" if (os.path.isfile(root.searchDir + "/config.json")) else "Create Config"
-		root.configButton.config(text=configText)
+	configText = "Rewrite Config" if (os.path.isfile(root.searchDir + "/config.json")) else "Create Config"
+	root.configButton.config(text=configText)
+
 
 	root.minsize(250, 180+len(root.UItargets)*30)
 
