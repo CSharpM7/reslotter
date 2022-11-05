@@ -7,7 +7,7 @@ import json
 import re
 
 def usage():
-    print("usage: python reslotter.py <mod_directory> <hashes_file> <fighter_name> <current_alt> <target_alt> <out_directory> <exclude (Y/N)>")
+    print("usage: python reslotter.py <mod_directory> <hashes_file> <fighter_name> <current_alt> <target_alt> <share_slot> <out_directory>")
     sys.exit(2)
 
 def makeDirsFromFile(path):
@@ -40,7 +40,7 @@ def find_fighter_files(mod_directory):
                         all_files.append(toAppend)
     return all_files
 
-def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, out_dir, fighter_name,exclude):
+def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, share_slot, out_dir, fighter_name):
     #TODO: If not excluding, only run through fighter_files once. Then properly generate a config
     #Maybe the fighter_files part should be moved to main()
     reslotted_files = []
@@ -51,9 +51,8 @@ def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, 
 
         # Since each directory has a different structure, we have to go through each directory separately
         if file.startswith(f"fighter/{fighter_name}"):
-            if (exclude.lower()=="y"):
-                if (not "/"+current_alt+"/" in file):
-                    continue
+            if (not "/"+current_alt+"/" in file):
+                continue
             
             lookfor = f"/{current_alt}/"
             replace = f"/{target_alt}/"
@@ -108,12 +107,13 @@ def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, 
     existing_files.extend(reslotted_files)
     if 7 < int(target_alt.strip("c")):
         current_alt_int = int(current_alt.strip("c"))
+        share_alt_int = int(share_slot.strip("c")) % 8
         if current_alt_int <= 7:
-            add_new_slot(f"fighter/{fighter_name}", current_alt, target_alt)
+            add_new_slot(f"fighter/{fighter_name}", current_alt, target_alt,"c0"+str(share_alt_int))
             add_missing_files(reslotted_files, fighter_name, target_alt,True)
         else:
             current_alt_int = int(target_alt.strip("c")) % 8
-            add_new_slot(f"fighter/{fighter_name}", f"c0{current_alt_int}", target_alt)
+            add_new_slot(f"fighter/{fighter_name}", f"c0{current_alt_int}", target_alt,"c0"+str(share_alt_int))
             add_missing_files(reslotted_files, fighter_name, target_alt,True)
     else:
         add_missing_files(reslotted_files, fighter_name, target_alt)
@@ -136,7 +136,7 @@ def add_missing_files(reslotted_files, fighter_name, target_alt, is_new_slot=Fal
         if file not in known_files:
             resulting_config["new-dir-files"][new_dir_info].append(file)
 
-def add_new_slot(dir_info, source_slot, new_slot):
+def add_new_slot(dir_info, source_slot, new_slot, share_slot):
     folders = dir_info.split("/")
     target_dir = dirs_data
 
@@ -147,17 +147,20 @@ def add_new_slot(dir_info, source_slot, new_slot):
         source_slot_dir = target_dir["directories"][source_slot]
         source_slot_path = "%s/%s" % ((dir_info, source_slot))
         new_slot_dir_path = "%s/%s" % ((dir_info, new_slot))
+        share_slot_dir = target_dir["directories"][share_slot]
+        share_slot_path = "%s/%s" % ((dir_info, share_slot))
 
         resulting_config["new-dir-infos"].append(new_slot_dir_path)
 
         # Deal with files
-        addFilesToDirInfo(new_slot_dir_path, source_slot_dir["files"], new_slot)
-        addSharedFiles(source_slot_dir["files"], source_slot, new_slot)
+        addFilesToDirInfo(new_slot_dir_path, share_slot_dir["files"], new_slot)
+        addSharedFiles(share_slot_dir["files"], source_slot, new_slot,share_slot)
 
         for dir in source_slot_dir["directories"]:
             source_slot_base = f"{source_slot_path}/{dir}"
             new_slot_base = f"{new_slot_dir_path}/{dir}"
-            resulting_config["new-dir-infos-base"][new_slot_base] = source_slot_base
+            share_slot_base = f"{share_slot_path}/{dir}"
+            resulting_config["new-dir-infos-base"][new_slot_base] = share_slot_base
 
     for dir in target_dir["directories"]:
         target_obj = target_dir["directories"][dir]
@@ -165,18 +168,21 @@ def add_new_slot(dir_info, source_slot, new_slot):
             source_slot_dir = target_obj["directories"][source_slot]
             source_slot_path = f"{dir_info}/{dir}/{source_slot}"
             new_slot_dir_path = f"{dir_info}/{dir}/{new_slot}"
+            share_slot_dir = target_obj["directories"][share_slot]
+            share_slot_path = f"{dir_info}/{dir}/{share_slot}"
 
             resulting_config["new-dir-infos"].append(new_slot_dir_path)
 
             # Deal with files
-            addFilesToDirInfo(new_slot_dir_path, source_slot_dir["files"], new_slot)
-            addSharedFiles(source_slot_dir["files"], source_slot, new_slot)
+            addFilesToDirInfo(new_slot_dir_path, share_slot_dir["files"], new_slot)
+            addSharedFiles(share_slot_dir["files"], source_slot, new_slot,share_slot)
 
             # Deal with directories
             for child_dir in source_slot_dir["directories"]:
                 source_slot_base = f"{source_slot_path}/{child_dir}"
                 new_slot_base = f"{new_slot_dir_path}/{child_dir}"
-                resulting_config["new-dir-infos-base"][new_slot_base] = source_slot_base
+                share_slot_base = f"{share_slot_path}/{child_dir}"
+                resulting_config["new-dir-infos-base"][new_slot_base] = share_slot_base
 
 
 def addFilesToDirInfo(dir_info, files, target_color):
@@ -192,7 +198,7 @@ def addFilesToDirInfo(dir_info, files, target_color):
             continue
         resulting_config["new-dir-files"][dir_info].append(new_file_path)
 
-def addSharedFiles(src_files, source_color, target_color):
+def addSharedFiles(src_files, source_color, target_color,share_slot):
     used_files = []
 
     for index in src_files:
@@ -201,10 +207,9 @@ def addSharedFiles(src_files, source_color, target_color):
             continue
         if file_path.replace(r"/c0[0-9]/", source_color) in used_files:
             continue
-        #Force prevent c00 being shared
-        if not source_color in file_path:
-            continue
         used_files.append(file_path)
+
+        #file_path = file_path.replace(r"/c0[0-9]/", share_slot)
 
         new_file_path = re.sub(r"c0[0-9]", target_color, file_path, 1)
         if new_file_path in existing_files:
@@ -224,7 +229,7 @@ def RecursiveRewrite(info,current_alt,target_alt):
     print(info.replace(current_alt,target_alt))
     return info.replace(current_alt,target_alt)
 
-def main(mod_directory, hashes_file, fighter_name, current_alt, target_alt, out_dir,exclude):
+def main(mod_directory, hashes_file, fighter_name, current_alt, target_alt, share_slot,out_dir):
     # get all of the files the mod modifies
     #fighter_files = find_fighter_files(mod_directory)
 
@@ -232,7 +237,7 @@ def main(mod_directory, hashes_file, fighter_name, current_alt, target_alt, out_
     if (not os.path.exists(out_dir)) and out_dir!="":
         os.mkdir(out_dir)
 
-    reslotted_files, new_fighter_files = reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, out_dir, fighter_name,exclude)
+    reslotted_files, new_fighter_files = reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, share_slot, out_dir, fighter_name)
 
 
 def init(hashes_file,mod_directory,newConfig):
