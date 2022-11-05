@@ -31,6 +31,8 @@ Select the root of your mod's folder. You'll be presented with the GUI at the to
 Navigate to which skin corresponds to the source of your mod (if you have Shinny Blue DK on the 3rd alt, it should be `c02`). Under the dropdown menu, select its new destination (ie `c03` for the fourth, blue alt).  Hit Change Slots, and the relevant files/folders will be changed, as well as a new `config.json` will be added.
 
 ### Adding New Slots
+Before you do this, read [this tutorial](https://docs.google.com/document/d/15N_I2_sTfGjWhy7NiBnw6gW0t8mYeRfsXBAfYshhNR4/edit?usp=drivesdk) by Blaze and [this tutorial](https://docs.google.com/document/d/1JQHDcpozZYNbO2IAzgG7GrBWC5OJc1_xfXmMw55pGhM/edit?usp=drivesdk) by WuBoy
+
 When you set the new slot to anything beyond `c07` (denoted with a + prefix), you are adding slots to the game! This is a slightly more involved process than just changing base slots, so you will need to go to File->Slot Addition Guide to understand how this process works. 
 
 "Share From" is the slot that the mod is based on. For example, a Robin mod on slot `c05` would set Share From to `c00` as both are male alts. A Sephiroth mod on slot `c07` should use `c06` for the shirtless variant. This program will do its best to set this to the optimal slot for each fighter, but you can manually set it if you want to.
