@@ -572,7 +572,7 @@ def Foresight(onlyConfig):
 			res = "Kirby can cause extremely long load times on the VS screen with additional slots"
 		elif (root.currentFighter in Trainer):
 			res = "Trainer might need their ptrainer_low model in the mod folder to use additional slots"
-	if res != "":
+	if res != "yes":
 		res = messagebox.askquestion(root.title(), res+"\nContinue with reslotting?")
 	return res
 
