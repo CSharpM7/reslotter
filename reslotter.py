@@ -150,7 +150,8 @@ def add_new_slot(dir_info, source_slot, new_slot, share_slot):
         share_slot_dir = target_dir["directories"][share_slot]
         share_slot_path = "%s/%s" % ((dir_info, share_slot))
 
-        resulting_config["new-dir-infos"].append(new_slot_dir_path)
+        if (not new_slot_dir_path in resulting_config["new-dir-infos"]):
+            resulting_config["new-dir-infos"].append(new_slot_dir_path)
 
         # Deal with files
         addFilesToDirInfo(new_slot_dir_path, share_slot_dir["files"], new_slot)
@@ -171,7 +172,8 @@ def add_new_slot(dir_info, source_slot, new_slot, share_slot):
             share_slot_dir = target_obj["directories"][share_slot]
             share_slot_path = f"{dir_info}/{dir}/{share_slot}"
 
-            resulting_config["new-dir-infos"].append(new_slot_dir_path)
+            if (not new_slot_dir_path in resulting_config["new-dir-infos"]):
+                resulting_config["new-dir-infos"].append(new_slot_dir_path)
 
             # Deal with files
             addFilesToDirInfo(new_slot_dir_path, share_slot_dir["files"], new_slot)
