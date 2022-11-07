@@ -464,7 +464,7 @@ def GetAssumedShareSlot(source,fighter):
 	elif fighter in altsAll:
 		return source
 	elif fighter in altsOdd:
-		return source % 1
+		return source % 2
 	else:
 		return 0
 
