@@ -86,7 +86,7 @@ def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, 
                     makeDirsFromFile(os.path.join(out_dir, new_file))
                     shutil.copy(os.path.join(mod_directory, file), os.path.join(out_dir, new_file))
 
-        elif file.startswith("sound/bank/fighter"):
+        elif file.startswith("sound/bank/fighter") or file.startswith("sound/bank/fighter_voice"):
             lookfor = f"_{current_alt}"
             replace = f"_{target_alt}"
             new_file = file.replace(lookfor, replace)
