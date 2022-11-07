@@ -94,7 +94,9 @@ def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, 
             if out_dir != "":
                 makeDirsFromFile(os.path.join(out_dir, new_file))
                 shutil.copy(os.path.join(mod_directory, file), os.path.join(out_dir, new_file))
-            reslotted_files.append(new_file)
+            
+            #reslotted_files.append(new_file)
+
         elif file.startswith(f"effect/fighter"):
             lookfor = f"{current_alt.strip('c')}"
             replace = f"{target_alt.strip('c')}"
@@ -102,6 +104,8 @@ def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, 
             if out_dir != "":
                 makeDirsFromFile(os.path.join(out_dir, new_file))
                 shutil.copy(os.path.join(mod_directory, file), os.path.join(out_dir, new_file))
+
+            #Prevent duplicates
             reslotted_files.append(new_file)
 
     existing_files.extend(reslotted_files)
