@@ -444,7 +444,7 @@ def OnFighterChange(*args):
 def GetAssumedShareSlot(source,fighter):
 	altsLast2 = ["edge","szerosuit","littlemac","mario","metaknight","jack"]
 	altsOdd = ["bayonetta","master","cloud","kamui","popo","nana","ike","shizue","demon",
-	"link","packun","eflame","elight","reflet","wario","wiifit",
+	"link","packun","reflet","wario","wiifit",
 	"ptrainer","ptrainer_low","pfushigisou","plizardon","pzenigame"]
 	altsAll = ["koopajr","murabito","purin","pikachu","pichu","sonic"]
 	if fighter == "brave" or fighter == "trail":
@@ -767,7 +767,8 @@ def SubCall(fighters,onlyConfig,sources,targets,shares,exclude,clone):
 	for fighter in fighters:
 		if fighter == "all":
 			continue
-		elif (root.currentFighter == "all"):
+		print("Beginning operations for " + fighter)
+		if (root.currentFighter == "all"):
 			root.slots=[]
 			modelFolder = root.searchDir+"/fighter/"+fighter+"/model"
 			motionFolder = root.searchDir+"/fighter/"+fighter+"/motion"
@@ -782,23 +783,25 @@ def SubCall(fighters,onlyConfig,sources,targets,shares,exclude,clone):
 			sources=[]
 			targets = []
 			shares = []
+			
 			for s in root.slots:
-				root.UIsources.append(s)
-				sources.append(s)
-				targets.append(s)
-				share = s
-				sAsInt = int(s.strip("c"))
-				if (sAsInt>7):
-					share = "c0"+str(GetAssumedShareSlot(sAsInt% 8,fighter))
-					print("Slot "+str(sAsInt)+" will share from "+share)
-				shares.append(share)
+				if s not in root.UIsources:
+					root.UIsources.append(s)
+					sources.append(s)
+					targets.append(s)
+					share = s
+					sAsInt = int(s.strip("c"))
+					if (sAsInt>7):
+						share = "c0"+str(GetAssumedShareSlot(sAsInt% 8,fighter))
+						print("Slot "+str(sAsInt)+" will share from "+share)
+					shares.append(share)
+
 		for i in range(len(root.UIsources)):
 			source = sources[i]
 			target = targets[i]
 			share = shares[i]
 			if (target == "" and exclude==True):
 				continue
-
 			outdirCall = "" if (onlyConfig) else root.targetDir
 			subcall = ["reslotter.py",root.searchDir,root.hashes,fighter,source,target,share,outdirCall]
 
@@ -806,7 +809,7 @@ def SubCall(fighters,onlyConfig,sources,targets,shares,exclude,clone):
 				print("Writing config for "+fighter+"'s "+source+" slot")
 			else:
 				print("Changing "+fighter+"'s "+source+" mod to "+target+"...")
-
+			
 			try:
 				reslotter.main(subcall[1],subcall[2],subcall[3],subcall[4],subcall[5],subcall[6],subcall[7])
 				succeeded=True
