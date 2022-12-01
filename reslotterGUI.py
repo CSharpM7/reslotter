@@ -825,7 +825,7 @@ def SubCall(fighters,onlyConfig,sources,targets,shares,exclude,clone):
 					shutil.copy(eFile,root.targetDir+"/"+e)
 
 			if (not clone):
-				shutil.rmtree(root.searchDir, ignore_errors=True))
+				shutil.rmtree(root.searchDir, ignore_errors=True)
 				os.rename(root.targetDir,root.searchDir)
 				root.targetDir=root.searchDir
 
