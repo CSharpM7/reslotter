@@ -383,7 +383,7 @@ def CreateMainWindow():
 	)
 
 	root.excludeCheckVariable = IntVar(value=1)
-	root.excludeCheck = Checkbutton(root, text='Exclude Blank Targets',variable=root.excludeCheckVariable, onvalue=1, offvalue=0)
+	root.excludeCheck = Checkbutton(root, text='Exclude Blank New Slots',variable=root.excludeCheckVariable, onvalue=1, offvalue=0)
 	root.excludeCheck.pack(side = BOTTOM)
 
 	root.excludeCheck_ttp = CreateToolTip(root.excludeCheck, \
