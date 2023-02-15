@@ -443,13 +443,13 @@ def OnFighterChange(*args):
 
 def GetAssumedShareSlot(source,fighter):
 	altsLast2 = ["edge","szerosuit","littlemac","mario","metaknight","jack"]
-	altsOdd = ["bayonetta","master","cloud","kamui","popo","nana","ike","shizue","demon",
+	altsOdd = ["bayonetta","master","cloud","kamui","ike","shizue","demon",
 	"link","packun","reflet","wario","wiifit",
 	"ptrainer","ptrainer_low","pfushigisou","plizardon","pzenigame"]
 	altsAll = ["koopajr","murabito","purin","pikachu","pichu","sonic"]
 	if fighter == "brave" or fighter == "trail":
 		return source % 4
-	elif fighter == "pikmin":
+	elif fighter == "pikmin" or fighter == "popo" or fighter == "nana":
 		return 0 if (source<4) else 4
 	elif fighter == "pacman":
 		return 0 if (source==0 or source==7) else source
