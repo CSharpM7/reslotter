@@ -30,16 +30,18 @@ defaultConfig['DEFAULT'] = {
     'searchDir' : ""
     }
 def CreateConfig():
-    print("creating valid config")
-    with open('config.ini', 'w+') as configfile:
-        defaultConfig.write(configfile)
-    config.read('config.ini')
+	print("creating valid config")
+	if (os.path.isfile(os.getcwd() + r"\config.ini")):
+		os.remove(os.getcwd() + r"\config.ini")
+
+	with open('config.ini', 'w+') as configfile:
+		defaultConfig.write(configfile)
+		config.read('config.ini')
 
 #create a config if necessary
 if (not os.path.isfile(os.getcwd() + r"\config.ini")):
     CreateConfig()
 config.read('config.ini')
-
 
 #truncate strings for labels
 def truncate(string,direciton=W,limit=20,ellipsis=True):
@@ -80,6 +82,8 @@ def Init(args):
 
 #open folder dialogue
 def SetsearchDir(firstLoad=True):
+    if firstLoad:
+        CreateConfig()
     messagebox.showinfo(root.title(),"Select your mod's main folder")
     searchDir = filedialog.askdirectory(title = "Select your mod's main folder")
     if (searchDir == ""):
@@ -123,7 +127,7 @@ def InitSearch(firstLoad=True):
             if res == 'yes':
                 print("using same search dir")
             elif res == 'no':
-                searchDir = SetsearchDir()
+                searchDir = SetsearchDir(firstLoad)
                 print("new search directory")
             else:
                 return False
@@ -239,6 +243,7 @@ def SetFighters(fighter=""):
 def OpenNewFolder():
 	if (InitSearch(False) == False):
 		return
+	CreateConfig()
 	SetFighters()
 	RefreshMainWindow()
 
@@ -359,6 +364,22 @@ def CreateMainWindow():
 	root.configButton = Button(buttons, text="Reconfig", command=Reconfig)
 	root.configButton.pack(side = RIGHT,padx=5)
 
+	redirectEntry = Frame(root)
+	redirectEntry.pack(side = BOTTOM)
+	root.redirectLabel = Label(redirectEntry,text="New UI name_id")
+	root.redirectLabel.pack(side = LEFT)
+	separater = Frame(redirectEntry,width = 8)
+	separater.pack(side = LEFT)
+
+	root.redirectEntryVariable = StringVar(value="")
+	root.redirectEntryCheck = Entry(redirectEntry,textvariable=root.redirectEntryVariable)
+	root.redirectEntryCheck.pack(side = RIGHT)
+
+	root.redirect_ttp = CreateToolTip(root.redirectLabel, \
+	"The new name id for UI files that are redirected via CSK's plugin"
+	"\nLeave blank to use the original fighter's id, or if not using the CSS redirector"
+	)
+
 	prcEntry = Frame(root)
 	prcEntry.pack(side = BOTTOM)
 	root.labelPRC = Label(prcEntry,text="New Max Slots")
@@ -468,6 +489,12 @@ def GetAssumedShareSlot(source,fighter):
 	else:
 		return 0
 
+def GetLastTarget(currentSlot):
+	if currentSlot in config["DEFAULT"]:
+		targetSlotStr = config["DEFAULT"][currentSlot]
+		return int(config["DEFAULT"][currentSlot].strip("+").strip("c"))+1
+	return 0
+
 def RefreshSlotWindow():
 	for widget in root.frameCombos.winfo_children():
 		widget.destroy()
@@ -519,7 +546,9 @@ def RefreshSlotWindow():
 			values.append(textSlot)
 
 		comboTarget['values'] = values
-		comboTarget.current(0)
+		#comboTarget.current(0)
+		comboTarget.current(GetLastTarget(textSource))
+
 		strTarget.trace_add('write',OnTargetChange)
 		comboTarget.pack(side = LEFT)
 		root.UItargets.append(comboTarget)
@@ -689,6 +718,8 @@ def RunReslotter(onlyConfig=False):
 			else:
 				targetText = sourceText
 
+		config.set("DEFAULT",sourceText,targetText)
+
 		#Check if we're using added slots, then remove the +
 		if ("+" in targetText) or (i>7 and onlyConfig):
 			usesAdditional=True
@@ -710,6 +741,10 @@ def RunReslotter(onlyConfig=False):
 		messagebox.showwarning(root.title(),"No targets slots are selected!")
 		return
 
+	#Update config
+	if (root.currentFighter != "all"):
+		with open('config.ini', 'w+') as configfile:
+			config.write(configfile)
 
 	root.withdraw()
 	print(targets)
@@ -749,8 +784,34 @@ def ReconfigAll():
 	root.targetDir = root.searchDir
 	SubCall(root.fighters,True,[],[],[],False,False)
 
-def SubCall(fighters,onlyConfig,sources,targets,shares,exclude,clone):
 
+def RenameUI(targetFolder,fighter_name,newname):
+	print("New CSS name:"+newname)
+	folders = [targetFolder+"/ui/replace",targetFolder+"/ui/replace_patch"]
+	for folder in folders:
+		for (dirpath, dirnames, filenames) in os.walk(folder):
+			newid = 0
+			for filename in filenames:
+				fighter_keys = [fighter_name]
+				#Ice Climber / Aegis Stuff
+				if (fighter_name=="popo" or fighter_name=="nana"):
+					fighter_keys = ["ice_climber"]
+				elif (fighter_name=="eflame"):
+					fighter_keys = ["eflame_first","eflame_only"]
+				elif (fighter_name=="elight"):
+					fighter_keys = ["elight_first","elight_only"]
+
+				for oldname in fighter_keys:
+					file = os.path.join(dirpath,filename)
+					newfilename = filename.replace("_"+oldname+"_","_"+newname+"_")
+					costumeslot = newfilename.index(newname+"_")
+					newfilename = newfilename[:costumeslot]+newname+"_"+"{:02d}".format(newid)+".bntx"
+					newfile = os.path.join(dirpath,newfilename)
+					os.rename(file,newfile)
+				newid = newid + 1
+
+
+def SubCall(fighters,onlyConfig,sources,targets,shares,exclude,clone):
 	#Warm up the reslotter
 	if (os.path.isfile(root.searchDir+"/config.json") and not onlyConfig):
 		#At the moment, this program can only append entries, rather than 
@@ -817,6 +878,7 @@ def SubCall(fighters,onlyConfig,sources,targets,shares,exclude,clone):
 				reslotter.usage()
 
 	if succeeded:
+
 		extras = ["info.toml","preview.webp"]
 		if (not onlyConfig):
 			for e in extras:
@@ -831,6 +893,9 @@ def SubCall(fighters,onlyConfig,sources,targets,shares,exclude,clone):
 
 		if (root.currentFighter != "all"):
 			CreatePRCXML(root.currentFighter,root.targetDir)
+			newName = root.redirectEntryVariable.get()
+			if newName != "":
+				RenameUI(root.targetDir,fighter,newName)
 
 		newConfigLocation = root.targetDir + '/config.json'
 		with open(newConfigLocation, 'w+', encoding='utf-8') as f:

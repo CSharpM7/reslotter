@@ -44,66 +44,60 @@ def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, 
     #TODO: If not excluding, only run through fighter_files once. Then properly generate a config
     #Maybe the fighter_files part should be moved to main()
     reslotted_files = []
-    for file in fighter_files:
-        #Exclude any other file outside of the current_alt
-        if (not current_alt.strip('c') in file):
-            continue
 
-        # Since each directory has a different structure, we have to go through each directory separately
-        if file.startswith(f"fighter/{fighter_name}"):
-            if (not "/"+current_alt+"/" in file):
+    if out_dir != "":
+        for file in fighter_files:
+            #Exclude any other file outside of the current_alt
+            if (not current_alt.strip('c') in file):
                 continue
-            
-            lookfor = f"/{current_alt}/"
-            replace = f"/{target_alt}/"
-            new_file = file.replace(lookfor, replace)
-            
-            #Used during "reconfig" to not copy files and simply add to the list of files for the config
-            if out_dir != "":
-                makeDirsFromFile(os.path.join(out_dir, new_file))
-                shutil.copy(os.path.join(mod_directory, file), os.path.join(out_dir, new_file))
 
-            reslotted_files.append(new_file)
+            lookfor = ""
+            replace = ""
+            new_file = ""
 
-        #Unique to UI folders, we need to check if the filename contains 
-        #"_fighter_name_" since all UI files are grouped together
-        elif file.startswith("ui/replace/chara") or file.startswith("ui/replace_patch/chara"):
-            lookfor = f"{current_alt.strip('c')}.bntx"
-            replace = f"{target_alt.strip('c')}.bntx"
-            new_file = file.replace(lookfor, replace)
+            #Unique to UI folders, we need to check if the filename contains 
+            #"_fighter_name_" since all UI files are grouped together
+            if file.startswith("ui/replace/chara") or file.startswith("ui/replace_patch/chara"):
+                lookfor = f"{current_alt.strip('c')}.bntx"
+                replace = f"{target_alt.strip('c')}.bntx"
+                new_file = file.replace(lookfor, replace)
 
-            fighter_keys = [fighter_name]
-            #Ice Climber / Aegis Stuff
-            if (fighter_name=="popo" or fighter_name=="nana"):
-                fighter_keys = ["ice_climber"]
-            elif (fighter_name=="eflame"):
-                fighter_keys = ["eflame_first","eflame_only"]
-            elif (fighter_name=="elight"):
-                fighter_keys = ["elight_first","elight_only"]
+                fighter_keys = [fighter_name]
+                #Ice Climber / Aegis Stuff
+                if (fighter_name=="popo" or fighter_name=="nana"):
+                    fighter_keys = ["ice_climber"]
+                elif (fighter_name=="eflame"):
+                    fighter_keys = ["eflame_first","eflame_only"]
+                elif (fighter_name=="elight"):
+                    fighter_keys = ["elight_first","elight_only"]
 
-            for key in fighter_keys:
-                if new_file.__contains__("_" + key + "_") and out_dir != "":
-                    makeDirsFromFile(os.path.join(out_dir, new_file))
-                    shutil.copy(os.path.join(mod_directory, file), os.path.join(out_dir, new_file))
+                for key in fighter_keys:
+                    if new_file.__contains__("_" + key + "_") and out_dir != "":
+                        makeDirsFromFile(os.path.join(out_dir, new_file))
+                        shutil.copy(os.path.join(mod_directory, file), os.path.join(out_dir, new_file))
+                continue
 
-        elif file.startswith(f"sound/bank/fighter/se_{fighter_name}") or file.startswith(f"sound/bank/fighter_voice/vc_{fighter_name}"):
-            lookfor = f"_{current_alt}"
-            replace = f"_{target_alt}"
-            new_file = file.replace(lookfor, replace)
+            # Since each directory has a different structure, we have to go through each directory separately
+            if file.startswith(f"fighter/{fighter_name}"):
+                if (not "/"+current_alt+"/" in file):
+                    continue
+                
+                lookfor = f"/{current_alt}/"
+                replace = f"/{target_alt}/"
+                new_file = file.replace(lookfor, replace)
+            elif file.startswith(f"sound/bank/fighter/se_{fighter_name}") or file.startswith(f"sound/bank/fighter_voice/vc_{fighter_name}"):
+                lookfor = f"_{current_alt}"
+                replace = f"_{target_alt}"
+                new_file = file.replace(lookfor, replace)
+            elif file.startswith(f"effect/fighter/{fighter_name}"):
+                lookfor = f"{current_alt.strip('c')}"
+                replace = f"{target_alt.strip('c')}"
+                new_file = file.replace(lookfor, replace)
+            else:
+                continue
 
-            if out_dir != "":
-                makeDirsFromFile(os.path.join(out_dir, new_file))
-                shutil.copy(os.path.join(mod_directory, file), os.path.join(out_dir, new_file))
-            
-            reslotted_files.append(new_file)
-
-        elif file.startswith(f"effect/fighter/{fighter_name}"):
-            lookfor = f"{current_alt.strip('c')}"
-            replace = f"{target_alt.strip('c')}"
-            new_file = file.replace(lookfor, replace)
-            if out_dir != "":
-                makeDirsFromFile(os.path.join(out_dir, new_file))
-                shutil.copy(os.path.join(mod_directory, file), os.path.join(out_dir, new_file))
+            makeDirsFromFile(os.path.join(out_dir, new_file))
+            shutil.copy(os.path.join(mod_directory, file), os.path.join(out_dir, new_file))
 
             #Prevent duplicates
             reslotted_files.append(new_file)
@@ -138,6 +132,8 @@ def add_missing_files(reslotted_files, fighter_name, target_alt, is_new_slot=Fal
         if (not is_new_slot and "effect" in file):
             continue
         if file not in known_files:
+            if file in resulting_config["new-dir-files"][new_dir_info]:
+                continue
             resulting_config["new-dir-files"][new_dir_info].append(file)
 
 def add_new_slot(dir_info, source_slot, new_slot, share_slot):
@@ -204,6 +200,11 @@ def addFilesToDirInfo(dir_info, files, target_color):
             continue
         resulting_config["new-dir-files"][dir_info].append(new_file_path)
 
+def IsShareableSound(sound_file):
+    if sound_file.endswith(".nus3audio") or sound_file.endswith(".nus3bank") or sound_file.endswith(".tonelabel"):
+        return False
+    return True
+
 def addSharedFiles(src_files, source_color, target_color,share_slot):
     used_files = []
 
@@ -224,6 +225,10 @@ def addSharedFiles(src_files, source_color, target_color,share_slot):
         share_to = "share-to-vanilla"
         if "motion/" in file_path or "camera/" in file_path:
             share_to = "share-to-added"
+        elif "sound/bank/fighter" in file_path:
+            share_to = "share-to-added"
+            #if not IsShareableSound(os.path.basename(file_path)):
+            #    continue
 
         if file_path not in resulting_config[share_to]:
             resulting_config[share_to][file_path] = []
