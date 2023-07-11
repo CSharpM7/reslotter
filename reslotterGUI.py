@@ -366,19 +366,33 @@ def CreateMainWindow():
 
 	redirectEntry = Frame(root)
 	redirectEntry.pack(side = BOTTOM)
-	root.redirectLabel = Label(redirectEntry,text="New UI name_id")
+	root.redirectLabel = Label(redirectEntry,text="name_id, start color")
 	root.redirectLabel.pack(side = LEFT)
 	separater = Frame(redirectEntry,width = 8)
 	separater.pack(side = LEFT)
+
+	root.redirectStartVariable = IntVar(value=0)
+	root.redirectStartSpinbox = Spinbox(redirectEntry, from_=0, to=255,width = 3)
+	root.redirectStartSpinbox.pack(side = RIGHT)
+	separater = Frame(redirectEntry,width = 4)
+	separater.pack(side = RIGHT)
 
 	root.redirectEntryVariable = StringVar(value="")
 	root.redirectEntryCheck = Entry(redirectEntry,textvariable=root.redirectEntryVariable)
 	root.redirectEntryCheck.pack(side = RIGHT)
 
 	root.redirect_ttp = CreateToolTip(root.redirectLabel, \
-	"The new name id for UI files that are redirected via CSK's plugin"
+	"The new name id for UI files that are redirected via CSK's plugin. (ie knuckles)"
 	"\nLeave blank to use the original fighter's id, or if not using the CSS redirector"
+	"\nThe number is the starting color (relative to the new entry). For batch redireciton, keep this at 0"
+	"\nIf you are adding mods (ie Knuckles Alt #2), you'll want to set this to that alt's number (ie 2)"
 	)
+
+
+	redirectheader = Label(root, text="CSS Redirect", bd=1, relief=SUNKEN, anchor=N)
+	redirectheader.pack(side = BOTTOM, fill=X)
+	frame = Frame(root)
+	frame.pack(side = BOTTOM,pady=5)
 
 	prcEntry = Frame(root)
 	prcEntry.pack(side = BOTTOM)
@@ -787,10 +801,11 @@ def ReconfigAll():
 
 def RenameUI(targetFolder,fighter_name,newname):
 	print("New CSS name:"+newname)
+	startid = int(root.redirectStartVariable.get())
 	folders = [targetFolder+"/ui/replace",targetFolder+"/ui/replace_patch"]
 	for folder in folders:
 		for (dirpath, dirnames, filenames) in os.walk(folder):
-			newid = 0
+			newid = startid
 			for filename in filenames:
 				fighter_keys = [fighter_name]
 				#Ice Climber / Aegis Stuff
@@ -911,6 +926,9 @@ def SubCall(fighters,onlyConfig,sources,targets,shares,exclude,clone):
 	UpdateHeader()
 
 def quit():
+	with open('config.ini', 'w+') as configfile:
+		config.write(configfile)
+		
 	root.destroy()
 	sys.exit("user exited")
 
