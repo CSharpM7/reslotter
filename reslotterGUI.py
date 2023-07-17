@@ -417,6 +417,13 @@ def CreateMainWindow():
 	'\nAlternatively, you can have one mod that has a "ui/param/database/ui_chara_db.prc" file that contains all changes for all fighters.'
 	)
 
+	root.shareCheckVariable = IntVar(value=0)
+	#root.shareCheck = Checkbutton(root, text='Use share-to libraries',variable=root.shareCheckVariable, onvalue=1, offvalue=0)
+	#root.shareCheck.pack(side = BOTTOM)
+	#root.shareCheck_ttp = CreateToolTip(root.shareCheck, \
+	#'Force non-additional slots to use "share-to-added" and "share-to-vanilla" when creating a config'
+	#'\nThis will automatically be true for any additional slots')
+
 	root.excludeCheckVariable = IntVar(value=1)
 	root.excludeCheck = Checkbutton(root, text='Exclude Blank New Slots',variable=root.excludeCheckVariable, onvalue=1, offvalue=0)
 	root.excludeCheck.pack(side = BOTTOM)
@@ -576,6 +583,7 @@ def RefreshSlotWindow():
 		comboShare = ttk.Combobox(comboEntry,textvar=strShare, width = 8)
 		shares = []
 		m=0
+		#shares.append("")
 		for m in range(8):
 			textSlot = "c%02d" % m
 			#add + to additional slots
@@ -821,7 +829,11 @@ def RenameUI(targetFolder,fighter_name,newname):
 					newfilename = filename.replace("_"+oldname+"_","_"+newname+"_")
 					costumeslot = newfilename.index(newname+"_")
 					newfilename = newfilename[:costumeslot]+newname+"_"+"{:02d}".format(newid)+".bntx"
-					newfile = os.path.join(dirpath,newfilename)
+					newfile = os.path.join(dirpath.replace("/ui/replace_patch","/ui/replace"),newfilename)
+					try:
+						os.makedirs(dirpath.replace("/ui/replace_patch","/ui/replace"))
+					except:
+						pass
 					os.rename(file,newfile)
 				newid = newid + 1
 
@@ -876,6 +888,11 @@ def SubCall(fighters,onlyConfig,sources,targets,shares,exclude,clone):
 			source = sources[i]
 			target = targets[i]
 			share = shares[i]
+			if (not root.shareCheckVariable.get()):
+				tAsInt = int(target.strip("c"))
+				if (tAsInt<8):
+					share = ""
+			print("Source:"+source+" Target:"+target+" Share: "+share)
 			if (target == "" and exclude==True):
 				continue
 			outdirCall = "" if (onlyConfig) else root.targetDir
