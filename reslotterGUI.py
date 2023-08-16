@@ -418,11 +418,12 @@ def CreateMainWindow():
 	)
 
 	root.shareCheckVariable = IntVar(value=0)
-	#root.shareCheck = Checkbutton(root, text='Use share-to libraries',variable=root.shareCheckVariable, onvalue=1, offvalue=0)
-	#root.shareCheck.pack(side = BOTTOM)
-	#root.shareCheck_ttp = CreateToolTip(root.shareCheck, \
-	#'Force non-additional slots to use "share-to-added" and "share-to-vanilla" when creating a config'
-	#'\nThis will automatically be true for any additional slots')
+	if True:
+		root.shareCheck = Checkbutton(root, text='Use share-to libraries',variable=root.shareCheckVariable, onvalue=1, offvalue=0)
+		root.shareCheck.pack(side = BOTTOM)
+		root.shareCheck_ttp = CreateToolTip(root.shareCheck, \
+		'Force non-additional slots to use "share-to-added" and "share-to-vanilla" when creating a config'
+		'\nThis will automatically be true for any additional slots')
 
 	root.excludeCheckVariable = IntVar(value=1)
 	root.excludeCheck = Checkbutton(root, text='Exclude Blank New Slots',variable=root.excludeCheckVariable, onvalue=1, offvalue=0)
@@ -513,7 +514,7 @@ def GetAssumedShareSlot(source,fighter):
 def GetLastTarget(currentSlot):
 	if currentSlot in config["DEFAULT"]:
 		targetSlotStr = config["DEFAULT"][currentSlot]
-		return int(config["DEFAULT"][currentSlot].strip("+").strip("c"))+1
+		return int(config["DEFAULT"][currentSlot].replace("+","").replace("c",""))+1
 	return 0
 
 def RefreshSlotWindow():
@@ -729,6 +730,11 @@ def RunReslotter(onlyConfig=False):
 
 		#get the cXX name of the target
 		targetText = root.UItargets[i].get()
+
+		#Update Config
+		config.set("DEFAULT",sourceText,targetText)
+		print("Config:"+sourceText+":"+targetText)
+
 		#Replace it if doing reconfig
 		if (onlyConfig):
 			targetText = sourceText
@@ -740,7 +746,6 @@ def RunReslotter(onlyConfig=False):
 			else:
 				targetText = sourceText
 
-		config.set("DEFAULT",sourceText,targetText)
 
 		#Check if we're using added slots, then remove the +
 		if ("+" in targetText) or (i>7 and onlyConfig):
@@ -889,10 +894,11 @@ def SubCall(fighters,onlyConfig,sources,targets,shares,exclude,clone):
 			target = targets[i]
 			share = shares[i]
 			if (not root.shareCheckVariable.get()):
-				tAsInt = int(target.strip("c"))
-				if (tAsInt<8):
-					share = ""
-			print("Source:"+source+" Target:"+target+" Share: "+share)
+				if "c" in target:
+					tAsInt = int(target.strip("c"))
+					if (tAsInt<8):
+						share = ""
+			#print("Source:"+source+" Target:"+target+" Share: "+share)
 			if (target == "" and exclude==True):
 				continue
 			outdirCall = "" if (onlyConfig) else root.targetDir

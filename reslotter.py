@@ -159,7 +159,7 @@ def add_new_slot(dir_info, source_slot, new_slot, share_slot):
         share_slot_path = "%s/%s" % ((dir_info, share_slot))
 
         if (not new_slot_dir_path in resulting_config["new-dir-infos"]):
-            if (not new_slot_dir_path in known_files):# and (new_slot_int > 7):
+            if (not new_slot_dir_path in known_files) and (new_slot_int > 7):
                 resulting_config["new-dir-infos"].append(new_slot_dir_path)
 
         # Deal with files
@@ -167,12 +167,12 @@ def add_new_slot(dir_info, source_slot, new_slot, share_slot):
         addSharedFiles(share_slot_dir["files"], source_slot, new_slot,share_slot)
 
         # Deal with directories
-        #if (new_slot_int > 7):
-        for dir in source_slot_dir["directories"]:
-            source_slot_base = f"{source_slot_path}/{dir}"
-            new_slot_base = f"{new_slot_dir_path}/{dir}"
-            share_slot_base = f"{share_slot_path}/{dir}"
-            resulting_config["new-dir-infos-base"][new_slot_base] = share_slot_base
+        if (new_slot_int > 7):
+            for dir in source_slot_dir["directories"]:
+                source_slot_base = f"{source_slot_path}/{dir}"
+                new_slot_base = f"{new_slot_dir_path}/{dir}"
+                share_slot_base = f"{share_slot_path}/{dir}"
+                resulting_config["new-dir-infos-base"][new_slot_base] = share_slot_base
 
     for dir in target_dir["directories"]:
         target_obj = target_dir["directories"][dir]
@@ -184,7 +184,7 @@ def add_new_slot(dir_info, source_slot, new_slot, share_slot):
             share_slot_path = f"{dir_info}/{dir}/{share_slot}"
 
             if (not new_slot_dir_path in resulting_config["new-dir-infos"]):
-                if (not new_slot_dir_path in known_files): #and (new_slot_int > 7):
+                if (not new_slot_dir_path in known_files) and (new_slot_int > 7):
                     resulting_config["new-dir-infos"].append(new_slot_dir_path)
 
             # Deal with files
@@ -192,12 +192,12 @@ def add_new_slot(dir_info, source_slot, new_slot, share_slot):
             addSharedFiles(share_slot_dir["files"], source_slot, new_slot,share_slot)
 
             # Deal with directories
-            #if (new_slot_int > 7):
-            for child_dir in source_slot_dir["directories"]:
-                source_slot_base = f"{source_slot_path}/{child_dir}"
-                new_slot_base = f"{new_slot_dir_path}/{child_dir}"
-                share_slot_base = f"{share_slot_path}/{child_dir}"
-                resulting_config["new-dir-infos-base"][new_slot_base] = share_slot_base
+            if (new_slot_int > 7):
+                for child_dir in source_slot_dir["directories"]:
+                    source_slot_base = f"{source_slot_path}/{child_dir}"
+                    new_slot_base = f"{new_slot_dir_path}/{child_dir}"
+                    share_slot_base = f"{share_slot_path}/{child_dir}"
+                    resulting_config["new-dir-infos-base"][new_slot_base] = share_slot_base
 
 def addFilesToDirInfo(dir_info, files, target_color):
     if dir_info not in resulting_config["new-dir-files"]:
@@ -215,6 +215,7 @@ def addFilesToDirInfo(dir_info, files, target_color):
 
 def addSharedFiles(src_files, source_color, target_color,share_slot):
     used_files = []
+    is_vanilla = int(target_color.strip("c")) % 8 < 8
 
     for index in src_files:
         file_path = file_array[index]
@@ -230,9 +231,17 @@ def addSharedFiles(src_files, source_color, target_color,share_slot):
         if new_file_path in existing_files:
             continue
 
+        if is_vanilla:
+            if (not "model." in file_path and not ".nutexb" in file_path):
+                continue
+            if ("kirby/model/copy_" in file_path):
+                continue
+
         share_to = "share-to-vanilla"
+        #prioritize modded animations
         if "motion/" in file_path or "camera/" in file_path:
             share_to = "share-to-added"
+        #prioritize modded sounds
         elif "sound/bank/fighter" in file_path:
             share_to = "share-to-added"
 
