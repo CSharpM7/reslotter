@@ -88,13 +88,13 @@ def SetsearchDir(firstLoad=True):
     searchDir = filedialog.askdirectory(title = "Select your mod's main folder")
     if (searchDir == ""):
         if (firstLoad):
-        	root.destroy()
-        	sys.exit("User exited")
+            root.destroy()
+            sys.exit("User exited")
     elif (IsValidSearch(searchDir) == False):
         messagebox.showerror(root.title(),"Please select the root of your mod's folder! This folder should contain a fighter folder within it!")
         if (firstLoad):
-        	root.destroy()
-        	sys.exit("Not a fighter folder")
+            root.destroy()
+            sys.exit("Not a fighter folder")
     return searchDir
 
 #make sure that it is a validated search folder, otherwise quit
@@ -135,7 +135,7 @@ def InitSearch(firstLoad=True):
             searchDir = SetsearchDir(firstLoad)
 
     if (searchDir == "" and not firstLoad):
-    	return False
+        return False
 
     root.searchDir = searchDir
     #Write new location to config file      
@@ -512,10 +512,15 @@ def GetAssumedShareSlot(source,fighter):
 		return 0
 
 def GetLastTarget(currentSlot):
-	if currentSlot in config["DEFAULT"]:
-		targetSlotStr = config["DEFAULT"][currentSlot]
-		return int(config["DEFAULT"][currentSlot].replace("+","").replace("c",""))+1
-	return 0
+    if currentSlot in config["DEFAULT"]:
+        targetSlotStr = config["DEFAULT"][currentSlot]
+        try:
+            targetSlotInt = int(targetSlotStr.replace("+", "").replace("c", ""))
+        except ValueError:
+            # handle the case where targetSlotStr is not a valid integer
+            targetSlotInt = 0
+        return targetSlotInt + 1
+    return 0
 
 def RefreshSlotWindow():
 	for widget in root.frameCombos.winfo_children():
