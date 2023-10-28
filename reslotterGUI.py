@@ -514,7 +514,8 @@ def GetAssumedShareSlot(source,fighter):
 def GetLastTarget(currentSlot):
 	if currentSlot in config["DEFAULT"]:
 		targetSlotStr = config["DEFAULT"][currentSlot]
-		return int(config["DEFAULT"][currentSlot].replace("+","").replace("c",""))+1
+		if "c" in config["DEFAULT"][currentSlot]:
+			return int(config["DEFAULT"][currentSlot].replace("+","").replace("c",""))+1
 	return 0
 
 def RefreshSlotWindow():
@@ -649,6 +650,7 @@ def CreatePRCXML(fighter,targetDir):
 	try:
 		os.makedirs(prcLocation)
 	except:
+		#print("Failed to create prcxml directory at "+prcLocation)
 		pass
 	textureListFile = open(prcLocation+prcFile,'w')
 	textureListFile.close()
