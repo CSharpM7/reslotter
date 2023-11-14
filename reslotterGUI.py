@@ -821,7 +821,11 @@ def RenameUI(targetFolder,fighter_name,newname):
 					newfilename = filename.replace("_"+oldname+"_","_"+newname+"_")
 					costumeslot = newfilename.index(newname+"_")
 					newfilename = newfilename[:costumeslot]+newname+"_"+"{:02d}".format(newid)+".bntx"
-					newfile = os.path.join(dirpath,newfilename)
+					newfile = os.path.join(dirpath.replace("/ui/replace_patch","/ui/replace"),newfilename)
+					try:
+						os.makedirs(dirpath.replace("/ui/replace_patch","/ui/replace"))
+					except:
+						pass
 					os.rename(file,newfile)
 				newid = newid + 1
 
