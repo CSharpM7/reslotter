@@ -26,8 +26,8 @@ Lucina
 YoungLink
 Ganon
 Mewtwo
-Roy
 Chrom
+Roy
 gamewatch
 MetaKnight
 Pit
