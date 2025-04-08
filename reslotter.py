@@ -126,12 +126,112 @@ def add_missing_files(reslotted_files, fighter_name, target_alt, is_new_slot=Fal
 
     if new_dir_info not in resulting_config["new-dir-files"]:
         resulting_config["new-dir-files"][new_dir_info] = []
+        
+    # Agregar entrada para cámara en la estructura correcta (SOLO en la estructura c10X/camera)
+    camera_dir_info = f"fighter/{fighter_name}/{target_alt}/camera"
+    if camera_dir_info not in resulting_config["new-dir-files"]:
+        resulting_config["new-dir-files"][camera_dir_info] = []
+        
+    # Clave para efectos trasplantados
+    transplant_dir_info = f"fighter/{fighter_name}/cmn"
+    if transplant_dir_info not in resulting_config["new-dir-files"]:
+        resulting_config["new-dir-files"][transplant_dir_info] = []
+        
+    # Eliminar cualquier entrada antigua de cámara que use otra estructura
+    old_camera_dir = f"fighter/{fighter_name}/camera/{target_alt}"
+    if old_camera_dir in resulting_config["new-dir-files"]:
+        del resulting_config["new-dir-files"][old_camera_dir]
 
+    # Lista extendida de extensiones para archivos personalizados que no forman parte de Smash vanilla
+    custom_extensions = [
+        '.nuanmb', '.marker', '.bin', '.tonelabel', '.numatb', '.numdlb', '.nutexb',
+        '.numshb', '.numshexb', '.nus3audio', '.nus3bank', '.nuhlpb', '.numdlb', '.xmb', '.kime', '.eff'
+    ]
+    custom_files = []
+    camera_files = []
+    transplant_files = []
+    effect_files = []
+    
+    # Buscar archivos personalizados en la carpeta del mod
+    for file in fighter_files:
+        # Detectar efectos trasplantados
+        transplant_path = f"effect/fighter/{fighter_name}/transplant/"
+        if transplant_path in file:
+            if file not in transplant_files:
+                transplant_files.append(file)
+            continue
+            
+        # Detectar efectos específicos del slot
+        effect_path = f"effect/fighter/{fighter_name}/ef_{fighter_name}_{target_alt}"
+        if effect_path in file:
+            if file not in effect_files:
+                effect_files.append(file)
+            continue
+            
+        # Verificar si el archivo está en la carpeta del target_alt
+        if f"/{target_alt}/" in file or file.endswith(f"/{target_alt}"):
+            # Manejar archivos de cámara de manera especial
+            if file.startswith(f"camera/fighter/{fighter_name}/{target_alt}/"):
+                # Solo incluir archivos .nuanmb para cámara, no incluir .kime
+                if file.endswith('.nuanmb'):
+                    camera_files.append(file)
+                continue
+                
+            file_ext = os.path.splitext(file)[1].lower()
+            is_custom = False
+            
+            # Comprobar si es un archivo personalizado por extensión
+            if file_ext in custom_extensions:
+                is_custom = True
+            
+            # O si no está en los archivos conocidos de Smash vanilla
+            if file not in known_files:
+                is_custom = True
+                
+            # O si es un archivo de texture/model personalizado
+            if any(marker in file.lower() for marker in ['body', 'face', 'hair', 'eye', 'brs_', 'bust_', 'hand_']):
+                is_custom = True
+            
+            # Si es un archivo personalizado, agregarlo a la lista
+            if is_custom:
+                custom_files.append(file)
+    
+    # Agregar los archivos personalizados a la configuración
+    for custom_file in custom_files:
+        if custom_file not in resulting_config["new-dir-files"][new_dir_info]:
+            resulting_config["new-dir-files"][new_dir_info].append(custom_file)
+    
+    # Agregar los archivos de efectos específicos del slot
+    for effect_file in effect_files:
+        if effect_file not in resulting_config["new-dir-files"][new_dir_info]:
+            resulting_config["new-dir-files"][new_dir_info].append(effect_file)
+    
+    # Agregar los archivos de cámara a la carpeta de cámara (SOLO a c10X/camera, no a camera/c10X)
+    # Solo incluir archivos .nuanmb, no .kime
+    for camera_file in camera_files:
+        if camera_file not in resulting_config["new-dir-files"][camera_dir_info]:
+            resulting_config["new-dir-files"][camera_dir_info].append(camera_file)
+            
+    # Agregar efectos trasplantados a fighter/{fighter_name}/cmn
+    for transplant_file in transplant_files:
+        if transplant_file not in resulting_config["new-dir-files"][transplant_dir_info]:
+            resulting_config["new-dir-files"][transplant_dir_info].append(transplant_file)
+    
+    # Procesar los archivos reslotteados normales
     for file in reslotted_files:
-        #Don't add oneslot effects to vanilla alts configs
+        # No agregar archivos de cámara en new-dir-files principal
+        if file.startswith(f"camera/fighter/{fighter_name}/{target_alt}/"):
+            continue
+            
+        # No agregar efectos trasplantados en new-dir-files principal
+        if f"effect/fighter/{fighter_name}/transplant/" in file:
+            continue
+            
+        # No añadir efectos a alts vanilla
         if (not is_new_slot and "effect" in file):
             continue
-        if file not in known_files:
+            
+        if file not in known_files and file not in custom_files:
             if file in resulting_config["new-dir-files"][new_dir_info]:
                 continue
             resulting_config["new-dir-files"][new_dir_info].append(file)
@@ -201,13 +301,16 @@ def addFilesToDirInfo(dir_info, files, target_color):
         resulting_config["new-dir-files"][dir_info].append(new_file_path)
 
 def IsShareableSound(sound_file):
-    if sound_file.endswith(".nus3audio") or sound_file.endswith(".nus3bank") or sound_file.endswith(".tonelabel"):
-        return False
+    # Ahora devolvemos True para todos los archivos de sonido
+    # para asegurar que se incluyan en el config.json
     return True
 
-def addSharedFiles(src_files, source_color, target_color,share_slot):
+def addSharedFiles(src_files, source_color, target_color, share_slot):
     used_files = []
-
+    
+    # Lista de extensiones que normalmente no se comparten, pero las trataremos de manera especial
+    never_share_extensions = ['.nutexb']  # Quitamos los archivos de audio de esta lista
+    
     for index in src_files:
         file_path = file_array[index]
         if file_path.startswith("0x"):
@@ -216,20 +319,37 @@ def addSharedFiles(src_files, source_color, target_color,share_slot):
             continue
         used_files.append(file_path)
 
-        #file_path = file_path.replace(r"/c0[0-9]/", share_slot)
-
         new_file_path = re.sub(r"c0[0-9]", target_color, file_path, 1)
+        
+        # Don't share if the file already exists in the mod
         if new_file_path in existing_files:
             continue
-
+            
+        # Basic filter for textures (ya no filtramos archivos de audio)
+        file_ext = os.path.splitext(file_path)[1].lower()
+        if file_ext in never_share_extensions:
+            # Only don't share if there are other similar files for that alt
+            similar_files_exist = False
+            file_base_name = os.path.basename(file_path)
+            dir_name = os.path.dirname(new_file_path)
+            
+            for existing_file in existing_files:
+                if dir_name in existing_file:
+                    similar_files_exist = True
+                    break
+                    
+            if similar_files_exist:
+                continue
+        
+        # Determine target section
         share_to = "share-to-vanilla"
         if "motion/" in file_path or "camera/" in file_path:
             share_to = "share-to-added"
         elif "sound/bank/fighter" in file_path:
+            # Siempre añadir archivos de sonido a share-to-added
             share_to = "share-to-added"
-            #if not IsShareableSound(os.path.basename(file_path)):
-            #    continue
 
+        # Add the file to the corresponding section
         if file_path not in resulting_config[share_to]:
             resulting_config[share_to][file_path] = []
         
@@ -240,18 +360,35 @@ def RecursiveRewrite(info,current_alt,target_alt):
     print(info.replace(current_alt,target_alt))
     return info.replace(current_alt,target_alt)
 
-def main(mod_directory, hashes_file, fighter_name, current_alt, target_alt, share_slot,out_dir):
+def main(mod_directory, hashes_file, fighter_name, current_alt, target_alt, share_slot, out_dir):
     # get all of the files the mod modifies
-    #fighter_files = find_fighter_files(mod_directory)
-
+    # fighter_files is already loaded in init()
+    
     # make the out directory if it doesn't exist
     if (not os.path.exists(out_dir)) and out_dir!="":
         os.mkdir(out_dir)
 
     reslotted_files, new_fighter_files = reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, share_slot, out_dir, fighter_name)
+    
+    # Reorganize new-dir-files so that fighter/{fighter_name}/cmn is last
+    if f"fighter/{fighter_name}/cmn" in resulting_config["new-dir-files"]:
+        # Save the transplanted effects
+        transplant_effects = resulting_config["new-dir-files"].pop(f"fighter/{fighter_name}/cmn")
+        
+        # Create a new ordered dictionary
+        ordered_new_dir_files = {}
+        
+        # Add all original entries
+        for key in resulting_config["new-dir-files"]:
+            ordered_new_dir_files[key] = resulting_config["new-dir-files"][key]
+            
+        # Add the transplanted effects entry at the end
+        ordered_new_dir_files[f"fighter/{fighter_name}/cmn"] = transplant_effects
+        
+        # Replace the original dictionary with the ordered one
+        resulting_config["new-dir-files"] = ordered_new_dir_files
 
-
-def init(hashes_file,mod_directory,newConfig):
+def init(hashes_file, mod_directory, newConfig):
     # load dir_info_with_files_trimmed.json for dir addition config gen
     global dirs_data
     global file_array
@@ -259,29 +396,52 @@ def init(hashes_file,mod_directory,newConfig):
     global existing_config
     global resulting_config
     global fighter_files
+    global known_files
+    
+    # First detect all files in the mod folder
     fighter_files = find_fighter_files(mod_directory)
+    
+    # Load all known files from vanilla game
+    known_files = set(map(lambda x: x.strip(), open(hashes_file, 'r').readlines()))
+    
+    # Ordered configuration structure with the exact order requested by the user
     existing_config = {
         "new-dir-infos": [],
         "new-dir-infos-base": {},
         "share-to-vanilla": {},
-        "share-to-added": {},
-        "new-dir-files": {}
+        "new-dir-files": {},
+        "share-to-added": {}
     }
-    #If there's an existing config, load it into existing_config to be transferred to resulting_config
+    
+    # If there's an existing configuration, load it but maintain the desired order
     if (not newConfig):
         existing_config_file = mod_directory + "/config.json"
         if (os.path.isfile(existing_config_file)):
-            with open(existing_config_file, "r") as f:
-                config = json.load(f)
-                existing_config = config
-                f.close()
+            try:
+                with open(existing_config_file, "r", encoding='utf-8') as f:
+                    config = json.load(f)
+                    # Maintain the correct order of sections
+                    if "new-dir-infos" in config:
+                        existing_config["new-dir-infos"] = config["new-dir-infos"]
+                    if "new-dir-infos-base" in config:
+                        existing_config["new-dir-infos-base"] = config["new-dir-infos-base"]
+                    if "share-to-vanilla" in config:
+                        existing_config["share-to-vanilla"] = config["share-to-vanilla"]
+                    if "new-dir-files" in config:
+                        existing_config["new-dir-files"] = config["new-dir-files"]
+                    if "share-to-added" in config:
+                        existing_config["share-to-added"] = config["share-to-added"]
+                    f.close()
+            except Exception as e:
+                print(f"Error loading config.json: {e}")
+                # If there's an error, use the default configuration
+                pass
 
     resulting_config = existing_config
-
-    existing_files = []
-    # get all of the files in SSBU's Filesystem
-    global known_files
-    known_files = set(map(lambda x: x.strip(), open(hashes_file, 'r').readlines()))
+    
+    # Create the list of existing files based on the files in the mod
+    existing_files = fighter_files.copy()
+    
     with open("dir_info_with_files_trimmed.json", "r") as f:
         res = json.load(f)
         dirs_data = res["dirs"]
