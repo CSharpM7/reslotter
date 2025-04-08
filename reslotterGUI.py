@@ -64,6 +64,9 @@ def Init(args):
 		root.destroy()
 		sys.exit("no hashes")
 
+	# Inicializar searchDir para asegurar que siempre exista
+	root.searchDir = ""
+	
 	#Load mod via drag n drop if possible
 	if (len(args)>1):     
 		if (not IsValidSearch(args[1])): 
@@ -75,258 +78,51 @@ def Init(args):
 				config.write(configfile)
 			return
 
-	if (InitSearch(args)==False):
-		root.destroy(searchDir)
-		sys.exit("exited prompt or folder does not exist")
-
-
-#open folder dialogue
-def SetsearchDir(firstLoad=True):
-    if firstLoad:
-        CreateConfig()
-    messagebox.showinfo(root.title(),"Select your mod's main folder")
-    searchDir = filedialog.askdirectory(title = "Select your mod's main folder")
-    if (searchDir == ""):
-        if (firstLoad):
-        	root.destroy()
-        	sys.exit("User exited")
-    elif (IsValidSearch(searchDir) == False):
-        messagebox.showerror(root.title(),"Please select the root of your mod's folder! This folder should contain a fighter folder within it!")
-        if (firstLoad):
-        	root.destroy()
-        	sys.exit("Not a fighter folder")
-    return searchDir
-
-#make sure that it is a validated search folder, otherwise quit
-def IsValidSearch(searchDir):
-	if (not os.path.isdir(searchDir)):
-		return
-	whitelist = ["fighter","sound","ui"]
-	subfolders = [f.path for f in os.scandir(searchDir) if f.is_dir()]
-	for dirname in list(subfolders):
-		for w in list(whitelist):
-			folderName = os.path.basename(dirname) 
-			if (folderName.lower() == w.lower()):
-				return True
-	return False
-        
-
-#Set Search Dir
-def InitSearch(firstLoad=True):
-    searchDir = config["DEFAULT"]["searchDir"]
-    if not (os.path.isdir(searchDir) and firstLoad):
-        searchDir = ""
-
-    #Get or Set root.searchDir
-    if (searchDir == ""):
-        searchDir = SetsearchDir(firstLoad)
-    else:
-        if (IsValidSearch(searchDir)):
-            basename = os.path.basename(searchDir)
-            res = messagebox.askquestion(root.title(), 'Use most recent search directory? ('+basename+')')
-            if res == 'yes':
-                print("using same search dir")
-            elif res == 'no':
-                searchDir = SetsearchDir(firstLoad)
-                print("new search directory")
-            else:
-                return False
-        else:
-            searchDir = SetsearchDir(firstLoad)
-
-    if (searchDir == "" and not firstLoad):
-    	return False
-
-    root.searchDir = searchDir
-    #Write new location to config file      
-    config.set("DEFAULT","searchDir",root.searchDir)
-    with open('config.ini', 'w+') as configfile:
-        config.write(configfile)
-
-def GetSlotsFromFolder(folder):
-	foundSlots = []
-	if (not os.path.isdir(folder)):
-		return foundSlots
-
-	#find slots
-	modelfolders = [f.path for f in os.scandir(folder) if f.is_dir()]
-	for m in modelfolders:
-		slots = [f.path for f in os.scandir(m) if f.is_dir()]
-		for s in slots:
-			slot = os.path.basename(s)
-			if not slot in root.slots:
-				foundSlots.append(slot)
-	return foundSlots
-
-def GetFightersFromFolders(folders,fighter=""):
-	fighters = []
-	for folder in folders:
-		foldername = os.path.basename(folder)
-		if (fighter != "" and foldername != fighter):
-			continue
-		if (foldername != "common"):
-			fighters.append(foldername)
-			#find slots
-			for s in GetSlotsFromFolder(folder+"/model"):
-				root.slots.append(s)
-			for s in GetSlotsFromFolder(folder+"/motion"):
-				root.slots.append(s)
-	return fighters
-
-def find_nth(haystack, needle, n):
-    start = haystack.find(needle)
-    while start >= 0 and n > 1:
-        start = haystack.find(needle, start+len(needle))
-        n -= 1
-    return start
-
-def GetFightersFromFiles(folders,fighter=""):
-	fighters = []
-	for f in folders:
-		if (os.path.basename(f) == "replace" or os.path.basename(f) == "replace_patch"):
-			fighterfolders = [f.path for f in os.scandir(f+"/chara") if f.is_dir()]
-			return GetFightersFromFiles(fighterfolders)
-
-		for (dirpath, dirnames, filenames) in os.walk(f):
-			for filename in filenames:
-				#we need the last and second to last _
-				unders = filename.count("_")
-				firstUnder = find_nth(filename,"_",unders-1)
-				secondUnder = find_nth(filename,"_",unders)
-				fightername = filename[firstUnder+1:secondUnder]
-				slot = filename[secondUnder+1:filename.index(".")]
-				if (not "c" in slot):
-					slot = "c"+slot
-
-				if (fighter != "" and fightername != fighter):
-					continue
-				if not fightername in fighters:
-					fighters.append(fightername)
-				if not slot in root.slots:
-					root.slots.append(slot)
-
-	return fighters
-	
-#Gets fighters from mod folder
-def SetFighters(fighter=""):
-	if (fighter==""):
-		root.fighters= []
-	root.slots = []
-	fighters = []
-	fighterFolder = root.searchDir+"/fighter"
-	uiFolder = root.searchDir+"/ui"
-	soundFolder = root.searchDir+"/sound/bank"
-
-	#If no fighter model, check for ui
-	if (not os.path.isdir(fighterFolder)):
-		#if no ui, check for sound
-		if (not os.path.isdir(uiFolder)):
-			if (not os.path.isdir(soundFolder)):
-				messagebox.showerror(root.title(),"This mod has no fighter folders")
-				root.destroy()
-				sys.exit("no fighter")
-			else:
-				soundfolders = [f.path for f in os.scandir(soundFolder) if f.is_dir()]
-				fighters = GetFightersFromFiles(soundfolders,fighter)
-		else:
-			uifolders = [f.path for f in os.scandir(uiFolder) if f.is_dir()]
-			fighters = GetFightersFromFiles(uifolders,fighter)
+	# Usar la última carpeta guardada si existe
+	searchDir = config["DEFAULT"]["searchDir"]
+	if os.path.isdir(searchDir) and IsValidSearch(searchDir):
+		root.searchDir = searchDir
 	else:
-		fighterfolders = [f.path for f in os.scandir(fighterFolder) if f.is_dir()]
-		fighters = GetFightersFromFolders(fighterfolders,fighter)
-
-	if (fighter==""):
-		fighters.append("all")
-		root.fighters = fighters
-
-#Opens new folder, refreshes window too
-def OpenNewFolder():
-	if (InitSearch(False) == False):
-		return
-	CreateConfig()
-	SetFighters()
-	RefreshMainWindow()
-
-def OpenReadMe():
-	webbrowser.open('https://github.com/CSharpM7/reslotter')
-def OpenGuide():
-	webbrowser.open('https://docs.google.com/document/d/1JQHDcpozZYNbO2IAzgG7GrBWC5OJc1_xfXmMw55pGhM')
-
-#Used to add * with unsaved changes
-def UpdateHeader(newheader="",color="black"):
-	prefix="*" if root.UnsavedChanges else ""
-	workspace= "("+os.path.basename(root.searchDir)+")"
-
-	if (newheader!=""):
-		newheader = " - "+newheader
-
-	root.header.config(text = prefix+workspace+newheader, fg = color)
-
-class CreateToolTip(object):
-    """
-    create a tooltip for a given widget
-    """
-    def __init__(self, widget, text='widget info'):
-        self.waittime = 500     #miliseconds
-        self.wraplength = 280   #pixels
-        self.widget = widget
-        self.text = text
-        self.widget.bind("<Enter>", self.enter)
-        self.widget.bind("<Leave>", self.leave)
-        self.widget.bind("<ButtonPress>", self.leave)
-        self.id = None
-        self.tw = None
-
-    def enter(self, event=None):
-        self.schedule()
-
-    def leave(self, event=None):
-        self.unschedule()
-        self.hidetip()
-
-    def schedule(self):
-        self.unschedule()
-        self.id = self.widget.after(self.waittime, self.showtip)
-
-    def unschedule(self):
-        id = self.id
-        self.id = None
-        if id:
-            self.widget.after_cancel(id)
-
-    def showtip(self, event=None):
-        x = y = 0
-        x, y, cx, cy = self.widget.bbox("insert")
-        x += self.widget.winfo_rootx() + 25
-        y += self.widget.winfo_rooty() + 20
-        # creates a toplevel window
-        self.tw = Toplevel(self.widget)
-        # Leaves only the label and removes the app window
-        self.tw.wm_overrideredirect(True)
-        self.tw.wm_geometry("+%d+%d" % (x, y))
-        label = Label(self.tw, text=self.text, justify='left',
-                       background="#ffffff", relief='solid', borderwidth=1,
-                       wraplength = self.wraplength)
-        label.pack(ipadx=1)
-
-    def hidetip(self):
-        tw = self.tw
-        self.tw= None
-        if tw:
-            tw.destroy()
+		# Si no hay carpeta guardada o no es válida, se pedirá seleccionar una cuando se presione el botón en la UI
+		pass
 
 def CreateMainWindow():
 	root.deiconify()
-	root.header = Label(root, text="", bd=1, relief=SUNKEN, anchor=N)
-	root.header.pack(side = TOP, fill=X)
+	
+	# Frame principal
+	main_frame = Frame(root, padx=10, pady=10)
+	main_frame.pack(fill=BOTH, expand=True)
+	
+	# Título y encabezado
+	root.header = Label(main_frame, text="", bd=1, relief=SUNKEN, anchor=N)
+	root.header.pack(side=TOP, fill=X, pady=(0, 10))
 	UpdateHeader()
-
+	
+	# Frame para selección de carpeta
+	folder_frame = Frame(main_frame)
+	folder_frame.pack(fill=X, pady=5)
+	
+	folder_label = Label(folder_frame, text="Mod Directory:")
+	folder_label.pack(side=LEFT, padx=(0, 5))
+	
+	root.folder_entry = Entry(folder_frame, width=50)
+	if hasattr(root, 'searchDir') and root.searchDir:
+		root.folder_entry.insert(0, root.searchDir)
+	root.folder_entry.pack(side=LEFT, fill=X, expand=True, padx=(0, 5))
+	
+	browse_button = Button(folder_frame, text="Browse...", command=OpenNewFolder)
+	browse_button.pack(side=LEFT)
+	
+	load_button = Button(folder_frame, text="Load", command=LoadModFolder)
+	load_button.pack(side=LEFT, padx=(5, 0))
+	
+	# Resto de la interfaz original
 	root.strFighter = StringVar(name="")
-	root.comboFighter = ttk.Combobox(root,textvar=root.strFighter, width = 16)
-	root.comboFighter.pack()
-	root.strFighter.trace_add('write',OnFighterChange)
+	root.comboFighter = ttk.Combobox(main_frame, textvar=root.strFighter, width=16)
+	root.comboFighter.pack(pady=5)
+	root.strFighter.trace_add('write', OnFighterChange)
 
-	headerText = Frame(root)
+	headerText = Frame(main_frame)
 	headerText.pack()
 	root.headerSource = Label(headerText,text="Current\nSlot",width = 8)
 	root.headerSource.pack(side = LEFT, expand=True)
@@ -351,20 +147,20 @@ def CreateMainWindow():
 	'\nFor Male/Female fighters, this could be either 0 or 1.'
 	'\nFor fighters with other special skins, it depends (ie 0,1,2,3 for Hero or 0/6 for Sephiroth.')
 
-	frame = Frame(root)
+	frame = Frame(main_frame)
 	frame.pack(pady=5)
 
 	root.frameCombos = Frame(frame)
 	root.frameCombos.pack(padx=5)
 	
-	buttons = Frame(root,width = 8)
+	buttons = Frame(main_frame,width = 8)
 	buttons.pack(side = BOTTOM,pady=10)
 	root.reslotButton = Button(buttons, text="Change Slots", command=Reslot)
 	root.reslotButton.pack(side = LEFT,padx=5)
 	root.configButton = Button(buttons, text="Reconfig", command=Reconfig)
 	root.configButton.pack(side = RIGHT,padx=5)
 
-	redirectEntry = Frame(root)
+	redirectEntry = Frame(main_frame)
 	redirectEntry.pack(side = BOTTOM)
 	root.redirectLabel = Label(redirectEntry,text="name_id, start color")
 	root.redirectLabel.pack(side = LEFT)
@@ -389,12 +185,12 @@ def CreateMainWindow():
 	)
 
 
-	redirectheader = Label(root, text="CSS Redirect", bd=1, relief=SUNKEN, anchor=N)
+	redirectheader = Label(main_frame, text="CSS Redirect", bd=1, relief=SUNKEN, anchor=N)
 	redirectheader.pack(side = BOTTOM, fill=X)
-	frame = Frame(root)
+	frame = Frame(main_frame)
 	frame.pack(side = BOTTOM,pady=5)
 
-	prcEntry = Frame(root)
+	prcEntry = Frame(main_frame)
 	prcEntry.pack(side = BOTTOM)
 	root.labelPRC = Label(prcEntry,text="New Max Slots")
 	root.labelPRC.pack(side = LEFT)
@@ -418,7 +214,7 @@ def CreateMainWindow():
 	)
 
 	root.excludeCheckVariable = IntVar(value=1)
-	root.excludeCheck = Checkbutton(root, text='Exclude Blank New Slots',variable=root.excludeCheckVariable, onvalue=1, offvalue=0)
+	root.excludeCheck = Checkbutton(main_frame, text='Exclude Blank New Slots',variable=root.excludeCheckVariable, onvalue=1, offvalue=0)
 	root.excludeCheck.pack(side = BOTTOM)
 
 	root.excludeCheck_ttp = CreateToolTip(root.excludeCheck, \
@@ -427,7 +223,7 @@ def CreateMainWindow():
 	'\nIf False, will include any blank slot, setting it to whatever is its "Current Slot"')
 
 	root.cloneCheckVariable = IntVar(value=1)
-	root.cloneCheck = Checkbutton(root, text='Copy To New Folder',variable=root.cloneCheckVariable, onvalue=1, offvalue=0)
+	root.cloneCheck = Checkbutton(main_frame, text='Copy To New Folder',variable=root.cloneCheckVariable, onvalue=1, offvalue=0)
 	root.cloneCheck.pack(side = BOTTOM)
 
 	root.cloneCheck_ttp = CreateToolTip(root.cloneCheck, \
@@ -446,19 +242,65 @@ def CreateMainWindow():
 	root.config(menu=root.menubar)
 	root.protocol("WM_DELETE_WINDOW", quit)
 
-	RefreshMainWindow()
+	# Inicialmente desactivar controles hasta que se cargue una carpeta válida
+	if not hasattr(root, 'searchDir') or not root.searchDir:
+		DisableControls()
+	else:
+		EnableControls()
 
-def OnTargetChange(*args):
-	root.UnsavedChanges=True
-	UpdateHeader()
+def DisableControls():
+	"""Disables controls until a valid folder is loaded"""
+	root.comboFighter.config(state="disabled")
+	root.reslotButton.config(state="disabled")
+	root.configButton.config(state="disabled")
 
-def OnShareChange(*args):
-	root.UnsavedChanges=True
-	UpdateHeader()
+def EnableControls():
+	"""Enables controls after loading a valid folder"""
+	root.comboFighter.config(state="normal")
+	root.reslotButton.config(state="normal")
+	root.configButton.config(state="normal")
+
+def OpenNewFolder():
+	"""Opens a dialog to select a new mod folder"""
+	directory = filedialog.askdirectory(title="Select mod folder")
+	if directory:
+		if IsValidSearch(directory):
+			root.folder_entry.delete(0, END)
+			root.folder_entry.insert(0, directory)
+			LoadModFolder()
+		else:
+			messagebox.showerror(root.title(), "The selected folder doesn't appear to be a valid mod. It must contain the 'fighter', 'sound', or 'ui' folders.")
+
+def LoadModFolder():
+	"""Loads the mod folder specified in the text entry"""
+	directory = root.folder_entry.get()
+	if directory and os.path.isdir(directory):
+		if IsValidSearch(directory):
+			root.searchDir = directory
+			config.set("DEFAULT", "searchDir", directory)
+			with open('config.ini', 'w+') as configfile:
+				config.write(configfile)
+			
+			# Analyze the selected folder to detect fighters and slots
+			SetFighters()
+			RefreshMainWindow()
+			EnableControls()
+			
+			# If there's an existing config.json, notify the user
+			if os.path.isfile(os.path.join(directory, "config.json")):
+				UpdateHeader("Mod with existing configuration", "blue")
+		else:
+			messagebox.showerror(root.title(), "The selected folder doesn't appear to be a valid mod. It must contain the 'fighter', 'sound', or 'ui' folders.")
+	else:
+		messagebox.showerror(root.title(), "Please select a valid folder.")
 
 def RefreshMainWindow():
 	root.UnsavedChanges=False
 	UpdateHeader()
+	
+	if not hasattr(root, 'fighters') or not root.fighters:
+		return
+		
 	root.comboFighter['values'] = [f for f in root.fighters]
 	#This automatically calls RefreshSlotWindow
 	root.comboFighter.current(0)
@@ -830,20 +672,24 @@ def RenameUI(targetFolder,fighter_name,newname):
 				newid = newid + 1
 
 
-def SubCall(fighters,onlyConfig,sources,targets,shares,exclude,clone):
+def SubCall(fighters, onlyConfig, sources, targets, shares, exclude, clone):
 	#Warm up the reslotter
 	if (os.path.isfile(root.searchDir+"/config.json") and not onlyConfig):
 		#At the moment, this program can only append entries, rather than 
-		res = messagebox.askquestion(root.title(), "This mod already has a config.json. Would you like to generate a new one?"
-			"\n(If no, this will add on to the current config, which would increase the config's filesize)"
+		res = messagebox.askquestion(root.title(), "This mod already has a config.json file. Do you want to generate a new one?"
+			"\n(If you select 'No', new entries will be added to the existing file, increasing its size)"
 			)
 		if (res != "yes" and res != "no"):
 			return
-		reslotter.init(root.hashes,root.searchDir,res == 'yes')
+		reslotter.init(root.hashes, root.searchDir, res == 'yes')
 	else:
-		reslotter.init(root.hashes,root.searchDir,onlyConfig)
+		reslotter.init(root.hashes, root.searchDir, onlyConfig)
 
-	succeeded=False
+	succeeded = False
+	
+	# Notificar al usuario que se está analizando la carpeta
+	UpdateHeader("Analizando archivos personalizados...", "blue")
+	
 	for fighter in fighters:
 		if fighter == "all":
 			continue
@@ -887,17 +733,39 @@ def SubCall(fighters,onlyConfig,sources,targets,shares,exclude,clone):
 
 			if (onlyConfig):
 				print("Writing config for "+fighter+"'s "+source+" slot")
+				UpdateHeader(f"Configurando {fighter}/{source}", "blue")
 			else:
 				print("Changing "+fighter+"'s "+source+" mod to "+target+"...")
+				UpdateHeader(f"Cambiando {fighter}/{source} a {target}", "blue")
 			
 			try:
 				reslotter.main(subcall[1],subcall[2],subcall[3],subcall[4],subcall[5],subcall[6],subcall[7])
 				succeeded=True
-			except IndexError:
+			except Exception as e:
+				print(f"Error al procesar {fighter}/{source}: {e}")
 				reslotter.usage()
 
 	if succeeded:
-
+		# Verificar que las secciones del config estén en el orden correcto
+		ordered_config = {}
+		# Mantener el orden específico solicitado por el usuario
+		sections = ["new-dir-infos", "new-dir-infos-base", "share-to-vanilla", "new-dir-files", "share-to-added"]
+		for section in sections:
+			if section in reslotter.resulting_config:
+				ordered_config[section] = reslotter.resulting_config[section]
+				
+		# Eliminar cualquier duplicación de entradas de cámara (asegurando que solo exista c10X/camera, no camera/c10X)
+		if "new-dir-files" in ordered_config:
+			for key in list(ordered_config["new-dir-files"].keys()):
+				if "/camera/" in key and not key.endswith("/camera"):
+					alt_key = key.replace("/camera/", "/")
+					alt_key = alt_key + "/camera"
+					
+					# Si existe la clave alternativa, eliminar la vieja
+					if alt_key in ordered_config["new-dir-files"]:
+						del ordered_config["new-dir-files"][key]
+		
+		# Guardar los demás archivos
 		extras = ["info.toml","preview.webp"]
 		if (not onlyConfig):
 			for e in extras:
@@ -916,14 +784,17 @@ def SubCall(fighters,onlyConfig,sources,targets,shares,exclude,clone):
 			if newName != "":
 				RenameUI(root.targetDir,fighter,newName)
 
+		# Guardar el config ordenado correctamente
 		newConfigLocation = root.targetDir + '/config.json'
 		with open(newConfigLocation, 'w+', encoding='utf-8') as f:
-			json.dump(reslotter.resulting_config, f, ensure_ascii=False, indent=4)
+			json.dump(ordered_config if ordered_config else reslotter.resulting_config, f, ensure_ascii=False, indent=4)
 
-		messagebox.showinfo(root.title(),"Finished!")
+		UpdateHeader("¡Completed!", "green")
+		messagebox.showinfo(root.title(),"¡Process completed successfully!")
 		webbrowser.open(root.targetDir)
 	else:
-		messagebox.showerror(root.title(),"Failed to reslot")
+		UpdateHeader("Error", "red")
+		messagebox.showerror(root.title(),"There was an error while running reslotter")
 
 	root.deiconify()
 	root.UnsavedChanges=False
@@ -941,6 +812,195 @@ def main(args):
 	SetFighters()
 	CreateMainWindow()
 
+#make sure that it is a validated search folder, otherwise quit
+def IsValidSearch(searchDir):
+	if (not os.path.isdir(searchDir)):
+		return False
+	whitelist = ["fighter","sound","ui"]
+	subfolders = [f.path for f in os.scandir(searchDir) if f.is_dir()]
+	for dirname in list(subfolders):
+		for w in list(whitelist):
+			folderName = os.path.basename(dirname) 
+			if (folderName.lower() == w.lower()):
+				return True
+	return False
+
+def GetSlotsFromFolder(folder):
+	foundSlots = []
+	if (not os.path.isdir(folder)):
+		return foundSlots
+
+	#find slots
+	modelfolders = [f.path for f in os.scandir(folder) if f.is_dir()]
+	for m in modelfolders:
+		slots = [f.path for f in os.scandir(m) if f.is_dir()]
+		for s in slots:
+			slot = os.path.basename(s)
+			if not slot in root.slots:
+				foundSlots.append(slot)
+	return foundSlots
+
+def GetFightersFromFolders(folders,fighter=""):
+	fighters = []
+	for folder in folders:
+		foldername = os.path.basename(folder)
+		if (fighter != "" and foldername != fighter):
+			continue
+		if (foldername != "common"):
+			fighters.append(foldername)
+			#find slots
+			for s in GetSlotsFromFolder(folder+"/model"):
+				root.slots.append(s)
+			for s in GetSlotsFromFolder(folder+"/motion"):
+				root.slots.append(s)
+	return fighters
+
+def find_nth(haystack, needle, n):
+    start = haystack.find(needle)
+    while start >= 0 and n > 1:
+        start = haystack.find(needle, start+len(needle))
+        n -= 1
+    return start
+
+def GetFightersFromFiles(folders,fighter=""):
+	fighters = []
+	for f in folders:
+		if (os.path.basename(f) == "replace" or os.path.basename(f) == "replace_patch"):
+			fighterfolders = [f.path for f in os.scandir(f+"/chara") if f.is_dir()]
+			return GetFightersFromFiles(fighterfolders)
+
+		for (dirpath, dirnames, filenames) in os.walk(f):
+			for filename in filenames:
+				#we need the last and second to last _
+				unders = filename.count("_")
+				firstUnder = find_nth(filename,"_",unders-1)
+				secondUnder = find_nth(filename,"_",unders)
+				fightername = filename[firstUnder+1:secondUnder]
+				slot = filename[secondUnder+1:filename.index(".")]
+				if (not "c" in slot):
+					slot = "c"+slot
+
+				if (fighter != "" and fightername != fighter):
+					continue
+				if not fightername in fighters:
+					fighters.append(fightername)
+				if not slot in root.slots:
+					root.slots.append(slot)
+
+	return fighters
+	
+#Gets fighters from mod folder
+def SetFighters(fighter=""):
+	if (fighter==""):
+		root.fighters= []
+	root.slots = []
+	fighters = []
+	
+	# Asegurarse de que searchDir esté inicializado
+	if not hasattr(root, 'searchDir') or not root.searchDir:
+		messagebox.showerror(root.title(), "There is no mod directory selected.")
+		return
+		
+	fighterFolder = root.searchDir+"/fighter"
+	uiFolder = root.searchDir+"/ui"
+	soundFolder = root.searchDir+"/sound/bank"
+
+	#If no fighter model, check for ui
+	if (not os.path.isdir(fighterFolder)):
+		#if no ui, check for sound
+		if (not os.path.isdir(uiFolder)):
+			if (not os.path.isdir(soundFolder)):
+				messagebox.showerror(root.title(),"This mod has no fighter folders")
+				return
+			else:
+				soundfolders = [f.path for f in os.scandir(soundFolder) if f.is_dir()]
+				fighters = GetFightersFromFiles(soundfolders,fighter)
+		else:
+			uifolders = [f.path for f in os.scandir(uiFolder) if f.is_dir()]
+			fighters = GetFightersFromFiles(uifolders,fighter)
+	else:
+		fighterfolders = [f.path for f in os.scandir(fighterFolder) if f.is_dir()]
+		fighters = GetFightersFromFolders(fighterfolders,fighter)
+
+	if (fighter==""):
+		fighters.append("all")
+		root.fighters = fighters
+
+def OpenReadMe():
+	webbrowser.open('https://github.com/CSharpM7/reslotter')
+def OpenGuide():
+	webbrowser.open('https://docs.google.com/document/d/1JQHDcpozZYNbO2IAzgG7GrBWC5OJc1_xfXmMw55pGhM')
+
+#Used to add * with unsaved changes
+def UpdateHeader(newheader="",color="black"):
+	prefix="*" if root.UnsavedChanges else ""
+	workspace= "("+os.path.basename(root.searchDir)+")" if hasattr(root, 'searchDir') and root.searchDir else "No mod selected"
+
+	if (newheader!=""):
+		newheader = " - "+newheader
+
+	root.header.config(text = prefix+workspace+newheader, fg = color)
+
+class CreateToolTip(object):
+    """
+    create a tooltip for a given widget
+    """
+    def __init__(self, widget, text='widget info'):
+        self.waittime = 500     #miliseconds
+        self.wraplength = 280   #pixels
+        self.widget = widget
+        self.text = text
+        self.widget.bind("<Enter>", self.enter)
+        self.widget.bind("<Leave>", self.leave)
+        self.widget.bind("<ButtonPress>", self.leave)
+        self.id = None
+        self.tw = None
+
+    def enter(self, event=None):
+        self.schedule()
+
+    def leave(self, event=None):
+        self.unschedule()
+        self.hidetip()
+
+    def schedule(self):
+        self.unschedule()
+        self.id = self.widget.after(self.waittime, self.showtip)
+
+    def unschedule(self):
+        id = self.id
+        self.id = None
+        if id:
+            self.widget.after_cancel(id)
+
+    def showtip(self, event=None):
+        x = y = 0
+        x, y, cx, cy = self.widget.bbox("insert")
+        x += self.widget.winfo_rootx() + 25
+        y += self.widget.winfo_rooty() + 20
+        # creates a toplevel window
+        self.tw = Toplevel(self.widget)
+        # Leaves only the label and removes the app window
+        self.tw.wm_overrideredirect(True)
+        self.tw.wm_geometry("+%d+%d" % (x, y))
+        label = Label(self.tw, text=self.text, justify='left',
+                       background="#ffffff", relief='solid', borderwidth=1,
+                       wraplength = self.wraplength)
+        label.pack(ipadx=1)
+
+    def hidetip(self):
+        tw = self.tw
+        self.tw= None
+        if tw:
+            tw.destroy()
+
+def OnTargetChange(*args):
+	root.UnsavedChanges=True
+	UpdateHeader()
+
+def OnShareChange(*args):
+	root.UnsavedChanges=True
+	UpdateHeader()
 
 main(sys.argv)
 root.mainloop()
