@@ -10,15 +10,36 @@ import subprocess
 import json
 import shutil
 import glob
+import webbrowser
 from texture_analyzer import TextureAnalyzer, convert_numatb_to_json, convert_numdlb_to_text
 import re
+
+def check_ultimate_tex_cli():
+    """Check if ultimate_tex_cli.exe exists in the same directory"""
+    exe_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ultimate_tex_cli.exe")
+    if not os.path.exists(exe_path):
+        root = tk.Tk()
+        root.withdraw()
+        messagebox.showerror("Missing Dependency", 
+            "ultimate_tex_cli.exe is required but was not found!\n\n"
+            "Please download it from:\n"
+            "https://github.com/ScanMountGoat/ultimate-tex-cli/releases\n\n"
+            "Place ultimate_tex_cli.exe in the same folder as this program.")
+        webbrowser.open("https://github.com/ScanMountGoat/ultimate-tex-cli/releases")
+        sys.exit(1)
 
 class TextureManagerApp:
     def __init__(self, root):
         """Initialize the Texture Manager application"""
+        # Check for ultimate_tex_cli.exe before proceeding
+        check_ultimate_tex_cli()
+        
         self.root = root
         self.root.title("Texture Manager")
         self.root.geometry("1400x850")
+        
+        # Set window close protocol
+        self.root.protocol("WM_DELETE_WINDOW", self.quit_application)
         
         # Set application icon if available
         try:
@@ -59,6 +80,21 @@ class TextureManagerApp:
         self.analyzer_thread = None
         self.mod_directory = None
         self.cancel_requested = False
+        
+        # Create menubar
+        self.menubar = tk.Menu(self.root)
+        self.filemenu = tk.Menu(self.menubar, tearoff=0)
+        self.filemenu.add_command(label="Open Mod Folder", command=self.on_mod_dir_select)
+        self.filemenu.add_separator()
+        self.filemenu.add_command(label="Exit", command=self.quit_application)
+        self.menubar.add_cascade(label="File", menu=self.filemenu)
+        
+        # Add Help menu
+        self.helpmenu = tk.Menu(self.menubar, tearoff=0)
+        self.helpmenu.add_command(label="Open README", command=self.open_readme)
+        self.menubar.add_cascade(label="Help", menu=self.helpmenu)
+        
+        self.root.config(menu=self.menubar)
         
         # Crear la interfaz
         self.setup_ui()
@@ -122,7 +158,7 @@ class TextureManagerApp:
         
         self.progress_bar = ttk.Progressbar(status_frame, length=100, mode='determinate')
         self.progress_bar.pack(fill=tk.X)
-    
+        
     def on_mod_dir_select(self):
         """Handle the selection of the mod directory"""
         directory = filedialog.askdirectory(title="Select Mod Directory")
@@ -202,7 +238,7 @@ class TextureManagerApp:
         selection = self.fighter_listbox.curselection()
         if not selection:
             return
-        
+            
         fighter = self.fighter_listbox.get(selection[0])
         self.selected_fighter_var.set(fighter)
         
@@ -210,14 +246,14 @@ class TextureManagerApp:
         self.alt_listbox.delete(0, tk.END)
         alts = self.get_alts(fighter)
         for alt in alts:
-            self.alt_listbox.insert(tk.END, alt)
+                self.alt_listbox.insert(tk.END, alt)
     
     def on_alt_select(self, event):
         """Handle alt selection in the analyzer tab"""
         selection = self.alt_listbox.curselection()
         if not selection:
             return
-        
+            
         alt = self.alt_listbox.get(selection[0])
         self.selected_alt_var.set(alt)
     
@@ -1310,6 +1346,18 @@ class TextureManagerApp:
             except Exception as e:
                 messagebox.showerror("Error", f"Could not remove analysis files: {str(e)}")
                 self.log_to_optimizer(f"Error cleaning analysis files: {str(e)}")
+
+    def open_readme(self):
+        """Opens the README on GitHub"""
+        webbrowser.open('https://github.com/CSharpM7/reslotter#readme')
+        
+    def quit_application(self):
+        """Exits the application"""
+        if hasattr(self, 'analyzer_thread') and self.analyzer_thread and self.analyzer_thread.is_alive():
+            if not messagebox.askyesno("Warning", "An analysis is in progress. Are you sure you want to exit?"):
+                return
+        self.root.destroy()
+        sys.exit(0)
 
 # Create the main application window
 if __name__ == "__main__":

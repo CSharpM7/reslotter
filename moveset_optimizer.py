@@ -1031,7 +1031,9 @@ class MovesetOptimizer:
                         print(f"Texture successfully converted: {output_path}")
                         return output_path
             except Exception as tex_error:
-                print(f"Error using Ultimate Tex CLI: {tex_error}")
+                print(f"Ultimate Tex CLI not found or error using it: {tex_error}")
+                print("Please download ultimate_tex_cli from: https://github.com/ScanMountGoat/ultimate-tex-cli/releases")
+                print("Place ultimate_tex_cli.exe in the same folder as this program.")
             
             # Method 2: Direct reading of binary data
             try:

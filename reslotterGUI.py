@@ -113,9 +113,6 @@ def CreateMainWindow():
 	browse_button = Button(folder_frame, text="Browse...", command=OpenNewFolder)
 	browse_button.pack(side=LEFT)
 	
-	load_button = Button(folder_frame, text="Load", command=LoadModFolder)
-	load_button.pack(side=LEFT, padx=(5, 0))
-	
 	# Resto de la interfaz original
 	root.strFighter = StringVar(name="")
 	root.comboFighter = ttk.Combobox(main_frame, textvar=root.strFighter, width=16)
@@ -236,9 +233,14 @@ def CreateMainWindow():
 	root.filemenu = Menu(root.menubar, tearoff=0)
 	root.filemenu.add_command(label="Open New Mod Folder", command=OpenNewFolder)
 	root.filemenu.add_command(label="Slot Addition Guide", command=OpenGuide)
-	root.filemenu.add_command(label="Open README", command=OpenReadMe)
 	root.filemenu.add_command(label="Exit", command=quit)
 	root.menubar.add_cascade(label="File", menu=root.filemenu)
+	
+	# Add Help menu
+	root.helpmenu = Menu(root.menubar, tearoff=0)
+	root.helpmenu.add_command(label="Open README", command=OpenReadMe)
+	root.menubar.add_cascade(label="Help", menu=root.helpmenu)
+	
 	root.config(menu=root.menubar)
 	root.protocol("WM_DELETE_WINDOW", quit)
 
@@ -246,6 +248,8 @@ def CreateMainWindow():
 	if not hasattr(root, 'searchDir') or not root.searchDir:
 		DisableControls()
 	else:
+		# Auto-load the stored directory on startup
+		LoadModFolder()
 		EnableControls()
 
 def DisableControls():
@@ -267,6 +271,7 @@ def OpenNewFolder():
 		if IsValidSearch(directory):
 			root.folder_entry.delete(0, END)
 			root.folder_entry.insert(0, directory)
+			# Automatically load the folder
 			LoadModFolder()
 		else:
 			messagebox.showerror(root.title(), "The selected folder doesn't appear to be a valid mod. It must contain the 'fighter', 'sound', or 'ui' folders.")
@@ -927,7 +932,7 @@ def SetFighters(fighter=""):
 		root.fighters = fighters
 
 def OpenReadMe():
-	webbrowser.open('https://github.com/CSharpM7/reslotter')
+	webbrowser.open('https://github.com/CSharpM7/reslotter#readme')
 def OpenGuide():
 	webbrowser.open('https://docs.google.com/document/d/1JQHDcpozZYNbO2IAzgG7GrBWC5OJc1_xfXmMw55pGhM')
 
