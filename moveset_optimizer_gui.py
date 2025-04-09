@@ -5,9 +5,34 @@ from tkinter import ttk, filedialog, messagebox, scrolledtext
 import threading
 from typing import Optional, List, Dict, Any
 import traceback
+import webbrowser
+import subprocess
 
 # Import the movesets optimizer
 from moveset_optimizer import MovesetOptimizer
+
+def check_ultimate_tex_cli():
+    """Check if ultimate_tex_cli is available and provide download link if not"""
+    try:
+        result = subprocess.run(["ultimate_tex_cli", "--version"], 
+                              stdout=subprocess.PIPE, 
+                              stderr=subprocess.PIPE,
+                              text=True, shell=True)
+        
+        if not ("ultimate_tex_cli" in str(result.stdout) or "ultimate_tex_cli" in str(result.stderr)):
+            raise FileNotFoundError("ultimate_tex_cli not found")
+            
+    except Exception:
+        response = messagebox.askquestion("Missing Dependency",
+            "ultimate_tex_cli.exe was not found. This tool is required for texture conversion.\n\n"
+            "Would you like to open the download page?\n\n"
+            "After downloading, place ultimate_tex_cli.exe in the same folder as this program.",
+            icon='warning')
+            
+        if response == 'yes':
+            webbrowser.open('https://github.com/ScanMountGoat/ultimate_tex/releases')
+        return False
+    return True
 
 class MovesetOptimizerGUI:
     def __init__(self, root):
@@ -22,6 +47,9 @@ class MovesetOptimizerGUI:
         self.root.geometry("700x600")
         self.root.minsize(600, 500)
         
+        # Set window close protocol
+        self.root.protocol("WM_DELETE_WINDOW", self.quit_application)
+        
         # Variables
         self.mod_path_var = tk.StringVar()
         self.fighter_name = tk.StringVar()
@@ -33,14 +61,41 @@ class MovesetOptimizerGUI:
         self.available_slots = []
         self.fitx_path_var = tk.StringVar()
         
+        # Check for ultimate_tex_cli
+        self.has_ultimate_tex_cli = self.check_ultimate_tex_cli()
+        
         # Configure the interface
         self.setup_ui()
         
+    def check_ultimate_tex_cli(self):
+        """Check if ultimate_tex_cli.exe exists in the same directory as the program"""
+        # Get the directory where the script is located
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        ultimate_tex_cli_path = os.path.join(current_dir, "ultimate_tex_cli.exe")
+        
+        # Check if the file exists
+        return os.path.exists(ultimate_tex_cli_path)
+
     def setup_ui(self):
         """Configures all interface elements"""
         # Main frame
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Create menubar
+        self.menubar = tk.Menu(self.root)
+        self.filemenu = tk.Menu(self.menubar, tearoff=0)
+        self.filemenu.add_command(label="Open Mod Folder", command=self.browse_directory)
+        self.filemenu.add_separator()
+        self.filemenu.add_command(label="Exit", command=self.quit_application)
+        self.menubar.add_cascade(label="File", menu=self.filemenu)
+        
+        # Add Help menu
+        self.helpmenu = tk.Menu(self.menubar, tearoff=0)
+        self.helpmenu.add_command(label="Open README", command=self.open_readme)
+        self.menubar.add_cascade(label="Help", menu=self.helpmenu)
+        
+        self.root.config(menu=self.menubar)
         
         # Directory section
         dir_frame = ttk.LabelFrame(main_frame, text="Mod Directory", padding="5")
@@ -98,17 +153,36 @@ class MovesetOptimizerGUI:
         texture_frame = ttk.LabelFrame(main_frame, text="NUTEXB Textures", padding="5")
         texture_frame.pack(fill=tk.X, pady=5)
         
+        # If ultimate_tex_cli is not available, add a notification label
+        if not self.has_ultimate_tex_cli:
+            req_frame = ttk.Frame(texture_frame)
+            req_frame.pack(fill=tk.X, pady=(0, 5))
+            
+            ttk.Label(req_frame, text="Requires ", font=("TkDefaultFont", 9, "bold")).pack(side=tk.LEFT)
+            
+            link_label = ttk.Label(req_frame, text="ultimate_tex_cli", 
+                                 foreground="blue", cursor="hand2", font=("TkDefaultFont", 9, "bold"))
+            link_label.pack(side=tk.LEFT)
+            link_label.bind("<Button-1>", self.open_ultimate_tex_cli_download)
+
         nutexb_button_frame = ttk.Frame(texture_frame)
         nutexb_button_frame.pack(fill=tk.X, pady=2)
         
+        # Create buttons with state based on ultimate_tex_cli availability
+        button_state = "normal" if self.has_ultimate_tex_cli else "disabled"
+        
         ttk.Button(nutexb_button_frame, text="Compare NUTEXB Files", 
-                   command=lambda: self.run_task(self.compare_nutexb_slots)).pack(side=tk.LEFT, padx=5)
+                   command=lambda: self.run_task(self.compare_nutexb_slots),
+                   state=button_state).pack(side=tk.LEFT, padx=5)
         ttk.Button(nutexb_button_frame, text="Optimize NUTEXB Files", 
-                   command=lambda: self.run_task(self.optimize_nutexb_slots)).pack(side=tk.LEFT, padx=5)
+                   command=lambda: self.run_task(self.optimize_nutexb_slots),
+                   state=button_state).pack(side=tk.LEFT, padx=5)
         ttk.Button(nutexb_button_frame, text="Compare All NUTEXB", 
-                   command=lambda: self.run_task(self.compare_all_nutexb_slots)).pack(side=tk.LEFT, padx=5)
+                   command=lambda: self.run_task(self.compare_all_nutexb_slots),
+                   state=button_state).pack(side=tk.LEFT, padx=5)
         ttk.Button(nutexb_button_frame, text="Optimize All NUTEXB", 
-                   command=lambda: self.run_task(self.optimize_all_nutexb_slots)).pack(side=tk.LEFT, padx=5)
+                   command=lambda: self.run_task(self.optimize_all_nutexb_slots),
+                   state=button_state).pack(side=tk.LEFT, padx=5)
         
         # Results area
         results_frame = ttk.LabelFrame(main_frame, text="Results", padding="5")
@@ -714,6 +788,22 @@ class MovesetOptimizerGUI:
             self.log(f"\nOptimization completed. {total_moved} NUTEXB files moved to 'junk'")
             self.log("\nOriginal files have been saved in the 'junk' folder and "
                      "config.json has been updated to share the textures.")
+
+    def open_ultimate_tex_cli_download(self, event=None):
+        """Open the ultimate_tex_cli download page"""
+        webbrowser.open('https://github.com/ScanMountGoat/ultimate_tex/releases')
+
+    def open_readme(self):
+        """Opens the README on GitHub"""
+        webbrowser.open('https://github.com/CSharpM7/reslotter#readme')
+        
+    def quit_application(self):
+        """Exits the application"""
+        if self.is_running:
+            if not messagebox.askyesno("Warning", "An operation is in progress. Are you sure you want to exit?"):
+                return
+        self.root.destroy()
+        sys.exit(0)
 
 
 def main():
