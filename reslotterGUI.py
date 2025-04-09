@@ -109,8 +109,9 @@ def CreateMainWindow():
 	if hasattr(root, 'searchDir') and root.searchDir:
 		root.folder_entry.insert(0, root.searchDir)
 	root.folder_entry.pack(side=LEFT, fill=X, expand=True, padx=(0, 5))
+	root.folder_entry.bind('<Return>',OpenNewFolderQuick)
 	
-	browse_button = Button(folder_frame, text="Browse...", command=OpenNewFolder)
+	browse_button = Button(folder_frame, text="Browse...", command=OpenNewFolderPrompt)
 	browse_button.pack(side=LEFT)
 	
 	# Resto de la interfaz original
@@ -231,7 +232,7 @@ def CreateMainWindow():
 	#Menubar
 	root.menubar = Menu(root)
 	root.filemenu = Menu(root.menubar, tearoff=0)
-	root.filemenu.add_command(label="Open New Mod Folder", command=OpenNewFolder)
+	root.filemenu.add_command(label="Open New Mod Folder", command=OpenNewFolderPrompt)
 	root.filemenu.add_command(label="Slot Addition Guide", command=OpenGuide)
 	root.filemenu.add_command(label="Exit", command=quit)
 	root.menubar.add_cascade(label="File", menu=root.filemenu)
@@ -264,9 +265,20 @@ def EnableControls():
 	root.reslotButton.config(state="normal")
 	root.configButton.config(state="normal")
 
-def OpenNewFolder():
+def OpenNewFolderPrompt():
 	"""Opens a dialog to select a new mod folder"""
 	directory = filedialog.askdirectory(title="Select mod folder")
+	if directory:
+		OpenNewFolder(directory)
+
+def OpenNewFolderQuick(event):
+	directory = root.folder_entry.get()
+	if directory:
+		OpenNewFolder(directory)
+
+def OpenNewFolder(directory):
+	print(directory)
+	"""Opens a dialog to select a new mod folder"""
 	if directory:
 		if IsValidSearch(directory):
 			root.folder_entry.delete(0, END)
