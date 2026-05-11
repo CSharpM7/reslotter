@@ -40,7 +40,7 @@ def find_fighter_files(mod_directory):
                         all_files.append(toAppend)
     return all_files
 
-def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, share_slot, out_dir, fighter_name):
+def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, share_slot, moveset_mode, out_dir, fighter_name):
     #TODO: If not excluding, only run through fighter_files once. Then properly generate a config
     #Maybe the fighter_files part should be moved to main()
     reslotted_files = []
@@ -240,7 +240,7 @@ def RecursiveRewrite(info,current_alt,target_alt):
     print(info.replace(current_alt,target_alt))
     return info.replace(current_alt,target_alt)
 
-def main(mod_directory, hashes_file, fighter_name, current_alt, target_alt, share_slot,out_dir):
+def main(mod_directory, hashes_file, fighter_name, current_alt, target_alt, share_slot, moveset_mode, out_dir):
     # get all of the files the mod modifies
     #fighter_files = find_fighter_files(mod_directory)
 
@@ -248,7 +248,7 @@ def main(mod_directory, hashes_file, fighter_name, current_alt, target_alt, shar
     if (not os.path.exists(out_dir)) and out_dir!="":
         os.mkdir(out_dir)
 
-    reslotted_files, new_fighter_files = reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, share_slot, out_dir, fighter_name)
+    reslotted_files, new_fighter_files = reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, share_slot, moveset_mode, out_dir, fighter_name)
 
 
 def init(hashes_file,mod_directory,newConfig):
@@ -291,6 +291,6 @@ def init(hashes_file,mod_directory,newConfig):
 
 if __name__ == "__main__":
     try:
-        main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6],sys.argv[7])
+        main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6], sys.argv[7], sys.argv[8])
     except IndexError:
         usage()

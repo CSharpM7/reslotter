@@ -27,7 +27,8 @@ import configparser
 config = configparser.ConfigParser()
 defaultConfig = configparser.ConfigParser()
 defaultConfig['DEFAULT'] = {
-    'searchDir' : ""
+    'searchDir' : "",
+    'MovesetMode' : ""
     }
 def CreateConfig():
     print("creating valid config")
@@ -75,10 +76,22 @@ def Init(args):
                 config.write(configfile)
             return
 
+    LoadMovesetMode()
     if (InitSearch(args)==False):
         root.destroy(searchDir)
         sys.exit("exited prompt or folder does not exist")
 
+
+def LoadMovesetMode():
+    MovesetMode = config["DEFAULT"]["MovesetMode"]
+    if (MovesetMode == ""):
+        root.MovesetMode = False
+    else:
+        root.MovesetMode = MovesetMode
+    
+def ToggleMovesetMode():
+    root.MovesetMode = not root.MovesetMode
+    CreateMainWindow()
 
 #open folder dialogue
 def SetsearchDir(firstLoad=True):
@@ -434,6 +447,15 @@ def CreateMainWindow():
     'Creates a new folder called "[Mod name] [slots] when changing slots.'
     '\nIf False, this will overwrite the current folder when changing slots, not entirely recommended...')
 
+    root.movesetCheckVariable = IntVar(value=1)
+    root.movesetCheck = Checkbutton(root, text='Treat As Moveset',variable=root.movesetCheckVariable, onvalue=1, offvalue=0)
+    root.movesetCheck.pack(side = BOTTOM)
+
+    root.movesetCheck_ttp = CreateToolTip(root.movesetCheck, \
+    'I recommend leaving this false unless you are a SSM moveset developer.'
+    '\nTreats this as a moveset, where the first slot of this mod is assumed as the SSM base.'
+    '\nAny file found in the SSM base that is not found in the succeeding slots will'
+    '\nbe shared from the SSM base rather than the "Share From" slot')
 
     #Menubar
     root.menubar = Menu(root)
@@ -441,6 +463,8 @@ def CreateMainWindow():
     root.filemenu.add_command(label="Open New Mod Folder", command=OpenNewFolder)
     root.filemenu.add_command(label="Slot Addition Guide", command=OpenGuide)
     root.filemenu.add_command(label="Open README", command=OpenReadMe)
+    movesetmodetext = "Disable Moveset Mode" if root.MovesetMode else "Enable Moveset Mode"
+    root.filemenu.add_command(label=movesetmodetext, command=ToggleMovesetMode)
     root.filemenu.add_command(label="Exit", command=quit)
     root.menubar.add_cascade(label="File", menu=root.filemenu)
     root.config(menu=root.menubar)
@@ -883,7 +907,7 @@ def SubCall(fighters,onlyConfig,sources,targets,shares,exclude,clone):
             if (target == "" and exclude==True):
                 continue
             outdirCall = "" if (onlyConfig) else root.targetDir
-            subcall = ["reslotter.py",root.searchDir,root.hashes,fighter,source,target,share,outdirCall]
+            subcall = ["reslotter.py",root.searchDir,root.hashes,fighter,source,target,share,root.movesetCheckVariable.get(),outdirCall]
 
             if (onlyConfig):
                 print("Writing config for "+fighter+"'s "+source+" slot")
@@ -891,7 +915,7 @@ def SubCall(fighters,onlyConfig,sources,targets,shares,exclude,clone):
                 print("Changing "+fighter+"'s "+source+" mod to "+target+"...")
             
             try:
-                reslotter.main(subcall[1],subcall[2],subcall[3],subcall[4],subcall[5],subcall[6],subcall[7])
+                reslotter.main(subcall[1],subcall[2],subcall[3],subcall[4],subcall[5],subcall[6],subcall[7],subcall[8])
                 succeeded=True
             except IndexError:
                 reslotter.usage()
