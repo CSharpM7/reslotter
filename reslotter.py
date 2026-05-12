@@ -6,6 +6,8 @@ import sys
 import json
 import re
 
+ignoreMoveset = True
+
 def usage():
     print("usage: python reslotter.py <mod_directory> <hashes_file> <fighter_name> <current_alt> <target_alt> <share_slot> <out_directory>")
     sys.exit(2)
@@ -40,11 +42,11 @@ def find_fighter_files(mod_directory):
                         all_files.append(toAppend)
     return all_files
 
-def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, share_slot, moveset_mode, out_dir, fighter_name):
+def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, share_slot, moveset_base, out_dir, fighter_name):
     #TODO: If not excluding, only run through fighter_files once. Then properly generate a config
     #Maybe the fighter_files part should be moved to main()
     reslotted_files = []
-
+    
     if out_dir != "":
         for file in fighter_files:
             #Exclude any other file outside of the current_alt
@@ -106,20 +108,21 @@ def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, 
     if 7 < int(target_alt.strip("c")):
         current_alt_int = int(current_alt.strip("c"))
         share_alt_int = int(share_slot.strip("c")) % 8
+        moveset_alt_int = int(moveset_base.strip("c"))
         if current_alt_int <= 7:
-            add_new_slot(f"fighter/{fighter_name}", current_alt, target_alt,"c0"+str(share_alt_int))
-            add_missing_files(reslotted_files, fighter_name, target_alt,True)
+            add_new_slot(f"fighter/{fighter_name}", current_alt, target_alt,"c0"+str(share_alt_int),moveset_alt_int)
+            add_missing_files(reslotted_files, fighter_name, target_alt,moveset_alt_int,True)
         else:
             current_alt_int = int(target_alt.strip("c")) % 8
-            add_new_slot(f"fighter/{fighter_name}", f"c0{current_alt_int}", target_alt,"c0"+str(share_alt_int))
-            add_missing_files(reslotted_files, fighter_name, target_alt,True)
+            add_new_slot(f"fighter/{fighter_name}", f"c0{current_alt_int}", target_alt,"c0"+str(share_alt_int),moveset_alt_int)
+            add_missing_files(reslotted_files, fighter_name, target_alt,moveset_alt_int,True)
     else:
         add_missing_files(reslotted_files, fighter_name, target_alt)
 
     return reslotted_files, fighter_files
 
 # Previous name of function was make_config
-def add_missing_files(reslotted_files, fighter_name, target_alt, is_new_slot=False):
+def add_missing_files(reslotted_files, fighter_name, target_alt, moveset_base, is_new_slot=False):
     # make a variable that holds the dirinfo path for the new slot
     new_dir_info = f"fighter/{fighter_name}/{target_alt}"
     # we have to do config separately if it's an added slot because those require extra config options
@@ -136,7 +139,7 @@ def add_missing_files(reslotted_files, fighter_name, target_alt, is_new_slot=Fal
                 continue
             resulting_config["new-dir-files"][new_dir_info].append(file)
 
-def add_new_slot(dir_info, source_slot, new_slot, share_slot):
+def add_new_slot(dir_info, source_slot, new_slot, share_slot, moveset_base):
     folders = dir_info.split("/")
     target_dir = dirs_data
 
@@ -240,7 +243,7 @@ def RecursiveRewrite(info,current_alt,target_alt):
     print(info.replace(current_alt,target_alt))
     return info.replace(current_alt,target_alt)
 
-def main(mod_directory, hashes_file, fighter_name, current_alt, target_alt, share_slot, moveset_mode, out_dir):
+def main(mod_directory, hashes_file, fighter_name, current_alt, target_alt, share_slot, moveset_base, out_dir):
     # get all of the files the mod modifies
     #fighter_files = find_fighter_files(mod_directory)
 
@@ -248,7 +251,10 @@ def main(mod_directory, hashes_file, fighter_name, current_alt, target_alt, shar
     if (not os.path.exists(out_dir)) and out_dir!="":
         os.mkdir(out_dir)
 
-    reslotted_files, new_fighter_files = reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, share_slot, moveset_mode, out_dir, fighter_name)
+    if (moveset_base == "c00"):
+        ignoreMoveset = True
+
+    reslotted_files, new_fighter_files = reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, share_slot, moveset_base, out_dir, fighter_name)
 
 
 def init(hashes_file,mod_directory,newConfig):

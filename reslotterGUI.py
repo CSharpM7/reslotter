@@ -447,15 +447,40 @@ def CreateMainWindow():
     'Creates a new folder called "[Mod name] [slots] when changing slots.'
     '\nIf False, this will overwrite the current folder when changing slots, not entirely recommended...')
 
-    root.movesetCheckVariable = IntVar(value=1)
-    root.movesetCheck = Checkbutton(root, text='Treat As Moveset',variable=root.movesetCheckVariable, onvalue=1, offvalue=0)
-    root.movesetCheck.pack(side = BOTTOM)
+    root.frameMoveset = Frame(root)
+    root.frameCombos.pack(padx=5)
+        
+    labelMoveset = Label(frameMoveset,text="Moveset Base:",width = 6)
+    labelMoveset.pack(side = LEFT)
 
-    root.movesetCheck_ttp = CreateToolTip(root.movesetCheck, \
-    'I recommend leaving this false unless you are a SSM moveset developer.'
-    '\nTreats this as a moveset, where the first slot of this mod is assumed as the SSM base.'
-    '\nAny file found in the SSM base that is not found in the succeeding slots will'
-    '\nbe shared from the SSM base rather than the "Share From" slot')
+    movesetLabel_ttp = CreateToolTip(labelMoveset, \
+    'If you are not using this on an SSM you are developing, keep this as None.'
+    '\nIf True, this slot will take priority over the share from slot if a file exists'
+    '\nin this slot, but not in any other slot (ie pichu/c120/a00wait1.nuanmb will be shared'
+    'to pichu/c121-c127 instead of pichu/c00 being shared)'
+    )
+    #root.UIsources.append(labelMoveset)
+
+    separater = Frame(frameMoveset,width = 8)
+    separater.pack(side = LEFT)
+
+    comboMovesetSlot = ttk.Combobox(frameMoveset,textvar=root.strMovesetSlot, width = 8)
+    movesetSlots = []
+    m=0
+    for m in range(root.maxSlots):
+        if m == 0:
+            movesetSlots.append("None")
+        elif m > 7:
+            textSlot = "c%02d" % m
+            #add + to additional slots
+            movesetSlots.append(textSlot)
+
+    comboMovesetSlot['values'] = shares
+    comboMovesetSlot.current("None")
+    strMovesetSlot.trace_add('write',OnMovesetSlotChange)
+    comboMovesetSlot.pack(side = LEFT)
+    #root.UImovesetslot.append(comboMovesetSlot)
+
 
     #Menubar
     root.menubar = Menu(root)
@@ -477,6 +502,10 @@ def OnTargetChange(*args):
     UpdateHeader()
 
 def OnShareChange(*args):
+    root.UnsavedChanges=True
+    UpdateHeader()
+
+def OnMovesetSlotChange(*args):
     root.UnsavedChanges=True
     UpdateHeader()
 
@@ -542,6 +571,7 @@ def RefreshSlotWindow():
     root.UIshares = []
     root.strTargets = {}
     root.strShares = {}
+    root.strMovesetSlot = "None"
 
     reslotText = "normal" if (root.currentFighter != "all") else "disabled"
     root.reslotButton["state"]=reslotText
@@ -729,6 +759,7 @@ def RunReslotter(onlyConfig=False):
     sources=[""]*len(root.UIsources)
     targets=[""]*len(root.UItargets)
     shares=[""]*len(root.UIshares)
+    movesetbase = "c00" if root.strMovesetSlot == "None" else root.strMovesetSlot
     usesAdditional=False
 
     targetName = ""
@@ -907,7 +938,7 @@ def SubCall(fighters,onlyConfig,sources,targets,shares,exclude,clone):
             if (target == "" and exclude==True):
                 continue
             outdirCall = "" if (onlyConfig) else root.targetDir
-            subcall = ["reslotter.py",root.searchDir,root.hashes,fighter,source,target,share,root.movesetCheckVariable.get(),outdirCall]
+            subcall = ["reslotter.py",root.searchDir,root.hashes,fighter,source,target,share,movesetbase,outdirCall]
 
             if (onlyConfig):
                 print("Writing config for "+fighter+"'s "+source+" slot")
