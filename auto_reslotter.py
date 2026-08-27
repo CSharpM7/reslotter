@@ -110,8 +110,7 @@ if __name__ == "__main__":
                         character_used_slots[character] = ["100", "101", "102", "103", "104", "105", "106", "107"]
                 character_used_slots[character].append(new_slot)
 
-                print(f"{mods_directory+new_mod_folder} Hashes_all.txt {character} {old_slot} c{new_slot[1:]} {share_slot} {mods_directory}New {new_mod_folder}")
-                reslotter.main(mods_directory+new_mod_folder, "Hashes_all.txt", character, old_slot, "c"+new_slot[1:], share_slot, f"{mods_directory}New {new_mod_folder}", False)
+                reslotter.main(mods_directory+new_mod_folder.rstrip("/"), "Hashes_all.txt", character, old_slot, "c"+new_slot[1:], share_slot, f"{mods_directory}New {new_mod_folder}".rstrip("/"))
                 to_remove.append(new_mod_folder)
                 new_mod_folder = f"New {new_mod_folder}"
     for remove_me in to_remove:
@@ -121,4 +120,4 @@ if __name__ == "__main__":
                 break
             except:
                 pass
-            
+
