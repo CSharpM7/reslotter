@@ -13,6 +13,8 @@ import xml.etree.ElementTree as ET
 
 import reslotter
 
+import auto_reslotter
+
 root = Tk()
 root.programName="Reslotter GUI"
 root.title("")
@@ -21,6 +23,19 @@ root.maxSources = 256
 root.maxSlots = 256
 root.OnlyUseSlotsInMod = True
 root.UnsavedChanges=False
+
+top_frame = Frame(root, padx=10, pady=10)
+top_frame.pack(fill=BOTH, expand=True)
+
+tabControl = ttk.Notebook(root)
+
+tab1 = ttk.Frame(tabControl)
+tab2 = ttk.Frame(tabControl)
+
+
+tabControl.add(tab1, text='Manual')
+tabControl.add(tab2, text='Auto')
+tabControl.pack(expand=1, fill="both")
 
 #Config options
 import configparser
@@ -88,30 +103,36 @@ def Init(args):
 
 def CreateMainWindow():
 	root.deiconify()
-	
+	global top_frame, tabControl, tab1, tab2
+
 	# Frame principal
-	main_frame = Frame(root, padx=10, pady=10)
+	main_frame = Frame(tab1, padx=10, pady=10)
 	main_frame.pack(fill=BOTH, expand=True)
+
+
+	# Frame principal
+	auto_frame = Frame(tab2, padx=10, pady=10)
+	auto_frame.pack(fill=BOTH, expand=True)
 	
 	# Título y encabezado
-	root.header = Label(main_frame, text="", bd=1, relief=SUNKEN, anchor=N)
+	root.header = Label(top_frame, text="", bd=1, relief=SUNKEN, anchor=N)
 	root.header.pack(side=TOP, fill=X, pady=(0, 10))
 	UpdateHeader()
 	
 	# Frame para selección de carpeta
-	folder_frame = Frame(main_frame)
+	folder_frame = Frame(top_frame)
 	folder_frame.pack(fill=X, pady=5)
 	
-	folder_label = Label(folder_frame, text="Mod Directory:")
+	folder_label = Label(top_frame, text="Mod Directory:")
 	folder_label.pack(side=LEFT, padx=(0, 5))
 	
-	root.folder_entry = Entry(folder_frame, width=50)
+	root.folder_entry = Entry(top_frame, width=50)
 	if hasattr(root, 'searchDir') and root.searchDir:
 		root.folder_entry.insert(0, root.searchDir)
 	root.folder_entry.pack(side=LEFT, fill=X, expand=True, padx=(0, 5))
 	root.folder_entry.bind('<Return>',OpenNewFolderQuick)
 	
-	browse_button = Button(folder_frame, text="Browse...", command=OpenNewFolderPrompt)
+	browse_button = Button(top_frame, text="Browse...", command=OpenNewFolderPrompt)
 	browse_button.pack(side=LEFT)
 	
 	# Resto de la interfaz original
@@ -157,6 +178,27 @@ def CreateMainWindow():
 	root.reslotButton.pack(side = LEFT,padx=5)
 	root.configButton = Button(buttons, text="Reconfig", command=Reconfig)
 	root.configButton.pack(side = RIGHT,padx=5)
+
+	
+	autoHeaderText = Frame(auto_frame)
+	autoHeaderText.pack()
+	root.autoHeaderTarget = Label(autoHeaderText,text="Reslot\nFrom",width = 8)
+	root.autoHeaderTarget.pack(side = LEFT, expand=True)
+	root.autoHeaderTarget = CreateToolTip(root.autoHeaderTarget, 'The slot you want to start reslotting from. All slots before retain their vanilla slot.')
+
+	separater = Frame(autoHeaderText,width = 8)
+	separater.pack(side = LEFT)
+
+	root.autoReslotFrom = AddSlotDropDowns(autoHeaderText, StringVar(name=""), 100, '0', "OnAutoReslotChange")
+
+	separater = Frame(autoHeaderText,width = 8)
+	separater.pack(side = LEFT)
+	
+	
+	auto_buttons = Frame(auto_frame,width = 8)
+	auto_buttons.pack(side = BOTTOM,pady=10)
+	root.autoReslotButton = Button(auto_buttons, text="Auto Change All Slots", command=AutoReslot)
+	root.autoReslotButton.pack(side = LEFT,padx=5)
 
 	redirectEntry = Frame(main_frame)
 	redirectEntry.pack(side = BOTTOM)
@@ -247,23 +289,29 @@ def CreateMainWindow():
 
 	# Inicialmente desactivar controles hasta que se cargue una carpeta válida
 	if not hasattr(root, 'searchDir') or not root.searchDir:
-		DisableControls()
+		DisableManualControls()
 	else:
 		# Auto-load the stored directory on startup
 		LoadModFolder()
-		EnableControls()
+		EnableManualControls()
 
-def DisableControls():
+def DisableManualControls():
 	"""Disables controls until a valid folder is loaded"""
 	root.comboFighter.config(state="disabled")
 	root.reslotButton.config(state="disabled")
 	root.configButton.config(state="disabled")
 
-def EnableControls():
+def EnableManualControls():
 	"""Enables controls after loading a valid folder"""
 	root.comboFighter.config(state="normal")
 	root.reslotButton.config(state="normal")
 	root.configButton.config(state="normal")
+
+def DisableAutoControls():
+	root.autoReslotButton.config(state="disabled")
+
+def EnableAutoControls():
+	root.autoReslotButton.config(state="normal")
 
 def OpenNewFolderPrompt():
 	"""Opens a dialog to select a new mod folder"""
@@ -281,35 +329,58 @@ def OpenNewFolder(directory):
 	"""Opens a dialog to select a new mod folder"""
 	if directory:
 		if IsValidSearch(directory):
+			DisableAutoControls()
 			root.folder_entry.delete(0, END)
 			root.folder_entry.insert(0, directory)
 			# Automatically load the folder
-			LoadModFolder()
-		else:
-			messagebox.showerror(root.title(), "The selected folder doesn't appear to be a valid mod. It must contain the 'fighter', 'sound', or 'ui' folders.")
+			tabControl.select(tab1)
 
-def LoadModFolder():
+			LoadModFolder()
+			EnableManualControls()
+			
+		else:
+			print(os.listdir(directory))
+			valid_directories = GetValidModsFolders(directory)
+					
+			if len(valid_directories) > 0:
+				DisableManualControls()
+				root.folder_entry.delete(0, END)
+				root.folder_entry.insert(0, directory)
+				tabControl.select(tab2)
+				LoadModFolder(False, False)
+				UpdateHeader(f"Contains {len(valid_directories)} Mods", "purple")
+				EnableAutoControls()
+
+			else: messagebox.showerror(root.title(), "The selected folder doesn't appear to be a valid mod and does not contain valid mods. Mod folders must contain the 'fighter', 'sound', or 'ui' folders.")
+
+def LoadModFolder(return_error=True, load_data=True):
 	"""Loads the mod folder specified in the text entry"""
 	directory = root.folder_entry.get()
 	if directory and os.path.isdir(directory):
-		if IsValidSearch(directory):
-			root.searchDir = directory
-			config.set("DEFAULT", "searchDir", directory)
-			with open('config.ini', 'w+') as configfile:
-				config.write(configfile)
-			
+		#if IsValidSearch(directory): # Not needed as we never get here without this check before hand
+		root.searchDir = directory
+		config.set("DEFAULT", "searchDir", directory)
+		with open('config.ini', 'w+') as configfile:
+			config.write(configfile)
+
+		print(load_data)
+
+		if load_data:
 			# Analyze the selected folder to detect fighters and slots
-			SetFighters()
-			RefreshMainWindow()
-			EnableControls()
+			SetFighters(root.searchDir)
+			EnableManualControls()
+
+		RefreshMainWindow()
 			
-			# If there's an existing config.json, notify the user
-			if os.path.isfile(os.path.join(directory, "config.json")):
-				UpdateHeader("Mod with existing configuration", "blue")
-		else:
-			messagebox.showerror(root.title(), "The selected folder doesn't appear to be a valid mod. It must contain the 'fighter', 'sound', or 'ui' folders.")
+		# If there's an existing config.json, notify the user
+		if os.path.isfile(os.path.join(directory, "config.json")):
+			UpdateHeader("Mod with existing configuration", "blue")
+		
+
+		#else:
+		#	if return_error: messagebox.showerror(root.title(), "The selected folder doesn't appear to be a valid mod. It must contain the 'fighter', 'sound', or 'ui' folders.")
 	else:
-		messagebox.showerror(root.title(), "Please select a valid folder.")
+		if return_error: messagebox.showerror(root.title(), "Please select a valid folder.")
 
 def RefreshMainWindow():
 	root.UnsavedChanges=False
@@ -332,7 +403,7 @@ def RefreshMainWindow():
 	
 def OnFighterChange(*args):
 	root.currentFighter = root.comboFighter.get().lower()
-	SetFighters(root.currentFighter)
+	SetFighters(root.searchDir, root.currentFighter)
 	RefreshSlotWindow()
 
 def GetAssumedShareSlot(source,fighter):
@@ -407,23 +478,12 @@ def RefreshSlotWindow():
 		separater.pack(side = LEFT)
 		
 		root.strTargets.update({textSource:StringVar(name="")})
+		print(root.strTargets)
 		strTarget= root.strTargets[textSource]
 		#Add possible combo select values
-		comboTarget = ttk.Combobox(comboEntry,textvar=strTarget, width = 8)
-		values = [""]
-		for m in range(root.maxSlots):
-			textSlot = "c%02d" % m
-			#add + to additional slots
-			if (m>=8):
-				textSlot = "+"+textSlot
-			values.append(textSlot)
 
-		comboTarget['values'] = values
-		#comboTarget.current(0)
-		comboTarget.current(GetLastTarget(textSource))
+		comboTarget = AddSlotDropDowns(comboEntry, strTarget, root.maxSlots, f"GetLastTarget('{textSource}')", "OnTargetChange")
 
-		strTarget.trace_add('write',OnTargetChange)
-		comboTarget.pack(side = LEFT)
 		root.UItargets.append(comboTarget)
 
 		separater = Frame(comboEntry,width = 8)
@@ -432,18 +492,8 @@ def RefreshSlotWindow():
 		root.strShares.update({textSource:StringVar(name="")})
 		strShare= root.strShares[textSource]
 		#Add possible combo select values
-		comboShare = ttk.Combobox(comboEntry,textvar=strShare, width = 8)
-		shares = []
-		m=0
-		for m in range(8):
-			textSlot = "c%02d" % m
-			#add + to additional slots
-			shares.append(textSlot)
+		comboShare = AddSlotDropDowns(comboEntry, strShare, 8, f"GetAssumedShareSlot({i%8},root.comboFighter.get().lower())", "OnShareChange")
 
-		comboShare['values'] = shares
-		comboShare.current(GetAssumedShareSlot(i%8,root.comboFighter.get().lower()))
-		strShare.trace_add('write',OnShareChange)
-		comboShare.pack(side = LEFT)
 		root.UIshares.append(comboShare)
 
 	configText = "Rewrite Config" if (os.path.isfile(root.searchDir + "/config.json")) else "Create Config"
@@ -452,13 +502,39 @@ def RefreshSlotWindow():
 
 	root.minsize(250, 180+len(root.UItargets)*30)
 
+def AddSlotDropDowns(drop_entry, strTarget, slot_selection_range, current_selection_code, target_change_code):
+	drop = ttk.Combobox(drop_entry,textvar=strTarget, width = 8)
+	values = []
+	for m in range(slot_selection_range):
+		textSlot = "c%02d" % m
+		#add + to additional slots
+		if (m>=8):
+			textSlot = "+"+textSlot
+		values.append(textSlot)
+
+	drop['values'] = values
+	drop.current(eval(current_selection_code))
+
+	strTarget.trace_add('write',eval(target_change_code))
+	drop.pack(side = LEFT)
+	return drop
+
+
+
+
 
 def Reslot():
 	RunReslotter(False)
 def Reconfig():
 	RunReslotter(True)
+def AutoReslot():
+
+	reslot_from = root.autoReslotFrom.get().replace("+","").replace(" ","")
+
+	auto_reslotter.main(root.searchDir, reslot_from)
 
 Climber = ["popo","nana"]
+
 Trainer = ["ptrainer","ptrainer_low","pzenigame","pfushigisou","plizardon"]
 Aegis = ["element","eflame","elight"]
 
@@ -822,8 +898,9 @@ def quit():
 
 def main(args):
 	Init(args)
-	SetFighters()
 	CreateMainWindow()
+	RefreshMainWindow()
+	OpenNewFolder(root.searchDir)
 
 #make sure that it is a validated search folder, otherwise quit
 def IsValidSearch(searchDir):
@@ -837,6 +914,13 @@ def IsValidSearch(searchDir):
 			if (folderName.lower() == w.lower()):
 				return True
 	return False
+
+def GetValidModsFolders(directory):
+	valid_directories = []
+	for directory_loaded in os.listdir(directory):
+		if IsValidSearch(os.path.join(directory, directory_loaded)):
+			valid_directories.append(os.path.join(directory, directory_loaded))
+	return valid_directories
 
 def GetSlotsFromFolder(folder):
 	foundSlots = []
@@ -903,27 +987,27 @@ def GetFightersFromFiles(folders,fighter=""):
 	return fighters
 	
 #Gets fighters from mod folder
-def SetFighters(fighter=""):
+def SetFighters(searchDir, fighter="", return_error=True):
 	if (fighter==""):
 		root.fighters= []
 	root.slots = []
 	fighters = []
 	
 	# Asegurarse de que searchDir esté inicializado
-	if not hasattr(root, 'searchDir') or not root.searchDir:
+	if not hasattr(root, 'searchDir') or not searchDir:
 		messagebox.showerror(root.title(), "There is no mod directory selected.")
 		return
 		
-	fighterFolder = root.searchDir+"/fighter"
-	uiFolder = root.searchDir+"/ui"
-	soundFolder = root.searchDir+"/sound/bank"
+	fighterFolder = searchDir+"/fighter"
+	uiFolder = searchDir+"/ui"
+	soundFolder = searchDir+"/sound/bank"
 
 	#If no fighter model, check for ui
 	if (not os.path.isdir(fighterFolder)):
 		#if no ui, check for sound
 		if (not os.path.isdir(uiFolder)):
 			if (not os.path.isdir(soundFolder)):
-				messagebox.showerror(root.title(),"This mod has no fighter folders")
+				if return_error: messagebox.showerror(root.title(),"This mod has no fighter folders")
 				return
 			else:
 				soundfolders = [f.path for f in os.scandir(soundFolder) if f.is_dir()]
@@ -1014,6 +1098,9 @@ def OnTargetChange(*args):
 def OnShareChange(*args):
 	root.UnsavedChanges=True
 	UpdateHeader()
+
+def OnAutoReslotChange(*args):
+	pass
 
 main(sys.argv)
 root.mainloop()
