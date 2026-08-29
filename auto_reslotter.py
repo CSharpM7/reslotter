@@ -87,7 +87,7 @@ def main(mods_directory, start_slotting_from):
                     character_used_slots[character] = []
                     for pad_slot in range(100, int(start_slotting_from)):
                         if pad_slot != int(start_slotting_from):
-                            character_used_slots[character].add(str(pad_slot))
+                            character_used_slots[character].append(str(pad_slot))
 
                 for temp_slot_index in range(100):
                     temp_slot = str(temp_slot_index+100)
