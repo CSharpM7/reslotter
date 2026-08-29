@@ -20,8 +20,11 @@ def get_slots(directory, slots):
     return slots
 
 
-def main(mods_directory, only_extra_slots):
+def main(mods_directory, start_slotting_from):
     global special_default_slots
+
+    if start_slotting_from[0] == "c": start_slotting_from = "1"+start_slotting_from[1:]
+    elif len(start_slotting_from) == 2: start_slotting_from = "1"+start_slotting_from
 
     mods_directory = add_slash(mods_directory)
 
@@ -79,27 +82,27 @@ def main(mods_directory, only_extra_slots):
                         share_slot = old_slot
                         available_slots = [old_slot]
 
-                if character in character_used_slots.keys():
-                    for temp_slot_index in range(100):
-                        temp_slot = str(temp_slot_index+100)
-                        if temp_slot not in character_used_slots[character]:
-                            if temp_slot_index < 8:
-                                if f"c{temp_slot[1:]}" in available_slots: 
-                                    new_slot = temp_slot
-                                    break
-                            else:
+                if character not in character_used_slots.keys():
+
+                    character_used_slots[character] = []
+                    for pad_slot in range(100, int(start_slotting_from)):
+                        if pad_slot != int(start_slotting_from):
+                            character_used_slots[character].add(str(pad_slot))
+
+                for temp_slot_index in range(100):
+                    temp_slot = str(temp_slot_index+100)
+                    if temp_slot not in character_used_slots[character]:
+                        if temp_slot_index < 8:
+                            if f"c{temp_slot[1:]}" in available_slots: 
                                 new_slot = temp_slot
                                 break
-                else:
-                    if not only_extra_slots: 
-                        if share_slot != "c00": new_slot = "1"+share_slot[1:]
-                        else: new_slot = "100"
-                        character_used_slots[character] = []
-                    else: 
-                        new_slot = "108"
-                        character_used_slots[character] = ["100", "101", "102", "103", "104", "105", "106", "107"]
+                        else:
+                            new_slot = temp_slot
+                            break
+
                 character_used_slots[character].append(new_slot)
 
+                print(f'"{mods_directory+new_mod_folder.rstrip("/")}" Hashes_all.txt {character} {old_slot} c{new_slot[1:]} {share_slot} "{mods_directory}New {new_mod_folder.rstrip("/")}"')
 
                 process = subprocess.run(['python', 'reslotter.py', mods_directory+new_mod_folder.rstrip("/"), "Hashes_all.txt", character, old_slot, "c"+new_slot[1:], share_slot, f"{mods_directory}New {new_mod_folder.rstrip('/')}"])
                 # subprocess used instead to ensure cache is cleared between runs. Without this each subsequent run of the same character fails
@@ -122,15 +125,12 @@ def main(mods_directory, only_extra_slots):
 if __name__ == "__main__":
     if len(sys.argv) == 3:
         mods_directory = sys.argv[1]
-        only_extra_slots = sys.argv[2]
+        start_slotting_from = sys.argv[2]
     elif len(sys.argv) == 2:
         mods_directory = sys.argv[1]
-        only_extra_slots = input("Only use extra slots (true/false): ")
+        start_slotting_from = input("Start slotting from slot (inclusive | cXX): ")
     else:
         mods_directory = input("Mods directory: ")
-        only_extra_slots = input("Only use extra slots (true/false): ")
+        start_slotting_from = input("Start slotting from slot (inclusive | cXX): ")
 
-    if only_extra_slots[0].lower() == "t": only_extra_slots = True
-    else: only_extra_slots = False
-
-    main(mods_directory, only_extra_slots)
+    main(mods_directory, start_slotting_from)
