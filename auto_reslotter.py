@@ -19,19 +19,9 @@ def get_slots(directory, slots):
 
     return slots
 
-if __name__ == "__main__":
-    if len(sys.argv) == 3:
-        mods_directory = sys.argv[1]
-        only_extra_slots = sys.argv[2]
-    elif len(sys.argv) == 2:
-        mods_directory = sys.argv[1]
-        only_extra_slots = input("Only use extra slots (true/false): ")
-    else:
-        mods_directory = input("Mods directory: ")
-        only_extra_slots = input("Only use extra slots (true/false): ")
 
-    if only_extra_slots[0].lower() == "t": only_extra_slots = True
-    else: only_extra_slots = False
+def main(mods_directory, only_extra_slots):
+    global special_default_slots
 
     mods_directory = add_slash(mods_directory)
 
@@ -124,5 +114,23 @@ if __name__ == "__main__":
                 break
             except:
                 time.sleep(0.1)
+                print("Failed to remove ",mods_directory+remove_me)
                 pass
 
+
+
+if __name__ == "__main__":
+    if len(sys.argv) == 3:
+        mods_directory = sys.argv[1]
+        only_extra_slots = sys.argv[2]
+    elif len(sys.argv) == 2:
+        mods_directory = sys.argv[1]
+        only_extra_slots = input("Only use extra slots (true/false): ")
+    else:
+        mods_directory = input("Mods directory: ")
+        only_extra_slots = input("Only use extra slots (true/false): ")
+
+    if only_extra_slots[0].lower() == "t": only_extra_slots = True
+    else: only_extra_slots = False
+
+    main(mods_directory, only_extra_slots)
