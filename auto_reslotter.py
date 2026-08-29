@@ -68,19 +68,18 @@ def main(mods_directory, start_slotting_from):
                                 slot_index = config["share-to-added"][key].split("/").index(old_slot)
                                 share_slot = key.split("/")[slot_index]
                                 break
-                else:
-                    if character not in special_default_slots.keys():
-                        share_slot = "c00"
-                        available_slots = ["c00", "c01", "c02", "c03", "c04", "c05", "c06", "c07"]
-                    elif isinstance(special_default_slots[special_default_slots], dict):
-                        for slot_default in special_default_slots[special_default_slots].keys():
-                            if old_slot in special_default_slots[special_default_slots][slot_default]:
-                                share_slot = slot_default
-                                available_slots = special_default_slots[special_default_slots][slot_default]
-                                break
-                    else: 
-                        share_slot = old_slot
-                        available_slots = [old_slot]
+                if character not in special_default_slots.keys():
+                    share_slot = "c00"
+                    available_slots = ["c00", "c01", "c02", "c03", "c04", "c05", "c06", "c07"]
+                elif isinstance(special_default_slots[special_default_slots], dict):
+                    for slot_default in special_default_slots[special_default_slots].keys():
+                        if old_slot in special_default_slots[special_default_slots][slot_default]:
+                            share_slot = slot_default
+                            available_slots = special_default_slots[special_default_slots][slot_default]
+                            break
+                else: 
+                    share_slot = old_slot
+                    available_slots = [old_slot]
 
                 if character not in character_used_slots.keys():
 
