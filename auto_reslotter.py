@@ -38,6 +38,7 @@ def main(mods_directory, start_slotting_from):
     for mod_folder in mod_folders:
         new_mod_folder = add_slash(mod_folder)
         internal_folders = os.listdir(mods_directory+new_mod_folder) 
+        stored_folder_name = mod_folder
         if "fighter" in internal_folders: internal_folder = "fighter"
         elif "effects" in internal_folders: internal_folder = "effects"
         elif "ui" in internal_folders: internal_folder = "ui"
@@ -57,8 +58,10 @@ def main(mods_directory, start_slotting_from):
             slots = get_slots(mods_directory+new_mod_folder+internal_folder+add_slash(character), [])
 
             print(slots)
+            new_slots = []
 
-            for old_slot in slots:
+            for old_slot_index in range(len(slots)):
+                old_slot = slots[old_slot_index]
                 slot = int("1"+old_slot[1:])
                 share_slot = "c00"
                 if slot > 107:
@@ -108,7 +111,17 @@ def main(mods_directory, start_slotting_from):
 
                 #reslotter.main(mods_directory+new_mod_folder.rstrip("/"), "Hashes_all.txt", character, old_slot, "c"+new_slot[1:], share_slot, f"{mods_directory}New {new_mod_folder.rstrip('/')}")
                 to_remove.append(new_mod_folder)
-                new_mod_folder = f"New {new_mod_folder}"
+                if old_slot_index <= len(slots)-1: new_mod_folder = f"New {new_mod_folder}"
+                new_slots.append("c"+str(new_slot)[1:])
+            new_final_name = stored_folder_name
+
+            for i in range(100, 200):
+                new_final_name = new_final_name.replace("c"+str(i)[1:],"").replace("C"+str(i)[1:],"").replace(str(i)[1:],"")
+            new_final_name = f"{character} {' '.join(new_slots)} - {new_final_name}"
+            while new_final_name in os.listdir(mods_directory):
+                new_final_name = "New "+new_final_name
+            shutil.move(mods_directory+new_mod_folder, mods_directory+new_final_name)
+            stored_folder_name = new_final_name
     for remove_me in to_remove:
         for attempt_number in range(10):
             try:
