@@ -1,4 +1,4 @@
-import os, sys, json, reslotter
+import os, sys, json, reslotter, time, subprocess
 
 with open("reslot_mapping.json", "r") as mapping:
     special_default_slots = json.load(mapping)
@@ -110,7 +110,11 @@ if __name__ == "__main__":
                         character_used_slots[character] = ["100", "101", "102", "103", "104", "105", "106", "107"]
                 character_used_slots[character].append(new_slot)
 
-                reslotter.main(mods_directory+new_mod_folder.rstrip("/"), "Hashes_all.txt", character, old_slot, "c"+new_slot[1:], share_slot, f"{mods_directory}New {new_mod_folder}".rstrip("/"))
+
+                process = subprocess.run(['python', 'reslotter.py', mods_directory+new_mod_folder.rstrip("/"), "Hashes_all.txt", character, old_slot, "c"+new_slot[1:], share_slot, f"{mods_directory}New {new_mod_folder.rstrip('/')}"])
+                # subprocess used instead to ensure cache is cleared between runs. Without this each subsequent run of the same character fails
+
+                #reslotter.main(mods_directory+new_mod_folder.rstrip("/"), "Hashes_all.txt", character, old_slot, "c"+new_slot[1:], share_slot, f"{mods_directory}New {new_mod_folder.rstrip('/')}")
                 to_remove.append(new_mod_folder)
                 new_mod_folder = f"New {new_mod_folder}"
     for remove_me in to_remove:
@@ -119,5 +123,6 @@ if __name__ == "__main__":
                 os.remove(mods_directory+remove_me)
                 break
             except:
+                time.sleep(0.1)
                 pass
 
