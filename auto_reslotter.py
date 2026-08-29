@@ -1,4 +1,4 @@
-import os, sys, json, reslotter, time, subprocess
+import os, sys, json, reslotter, time, subprocess, shutil
 
 with open("reslot_mapping.json", "r") as mapping:
     special_default_slots = json.load(mapping)
@@ -113,7 +113,7 @@ def main(mods_directory, start_slotting_from):
     for remove_me in to_remove:
         for attempt_number in range(10):
             try:
-                os.remove(mods_directory+remove_me)
+                shutil.rmtree(mods_directory+remove_me)
                 break
             except:
                 time.sleep(0.1)
