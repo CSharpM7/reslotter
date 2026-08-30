@@ -400,6 +400,8 @@ def RefreshMainWindow():
 		messagebox.showinfo(root.title(),"Trainer and their pokemon will all be reslotted with the same parameters")
 	if (root.comboFighter['values'][0] in Aegis):
 		messagebox.showinfo(root.title(),"Pyra, Mythra and Rex will all be reslotted with the same parameters")
+	if (root.comboFighter['values'][0] in Bowser):
+		messagebox.showinfo(root.title(),"Bowser and Giga Bowser will both be reslotted with the same parameters")
 	
 def OnFighterChange(*args):
 	root.currentFighter = root.comboFighter.get().lower()
@@ -537,6 +539,7 @@ Climber = ["popo","nana"]
 
 Trainer = ["ptrainer","ptrainer_low","pzenigame","pfushigisou","plizardon"]
 Aegis = ["element","eflame","elight"]
+Bowser = ["koopa", "koopag"]
 
 def Foresight(onlyConfig):
 	res = "yes"
@@ -592,6 +595,8 @@ def CreatePRCXML(fighter,targetDir):
 		targetIndexes = [38,39,40,41]
 	elif (fighter in Aegis):
 		targetIndexes = [114,115,116,117,118]
+	elif (fighter in Bowser):
+		targetIndexes = [16,93]
 	#Otherwise find the index via the fighter's name
 	else:
 		for i in range(len(indexes)):
@@ -714,11 +719,13 @@ def RunReslotter(onlyConfig=False):
 	#Populate with more fighters for these unique cases
 	fighters = [root.currentFighter]
 	if (root.currentFighter in Climber):
-		fighters= Climber
+		fighters = Climber
 	if (root.currentFighter in Trainer):
-		fighters= Trainer
+		fighters = Trainer
 	if (root.currentFighter in Aegis):
-		fighters= Aegis
+		fighters = Aegis
+	if (root.currentFighter in Bowser):
+		fighters = Bowser
 
 	SubCall(fighters,onlyConfig,sources,targets,shares,exclude,clone)
 
