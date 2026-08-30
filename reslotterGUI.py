@@ -84,7 +84,7 @@ def Init(args):
 	
 	#Load mod via drag n drop if possible
 	if (len(args)>1):     
-		if (not IsValidSearch(args[1])): 
+		if (not reslotter.IsValidSearch(args[1])): 
 			messagebox.showerror(root.title(),"Dropped folder is not a valid mod folder!")
 		else:
 			config.set("DEFAULT","searchDir",args[1])
@@ -95,7 +95,7 @@ def Init(args):
 
 	# Usar la última carpeta guardada si existe
 	searchDir = config["DEFAULT"]["searchDir"]
-	if os.path.isdir(searchDir) and IsValidSearch(searchDir):
+	if os.path.isdir(searchDir) and reslotter.IsValidSearch(searchDir):
 		root.searchDir = searchDir
 	else:
 		# Si no hay carpeta guardada o no es válida, se pedirá seleccionar una cuando se presione el botón en la UI
@@ -328,7 +328,7 @@ def OpenNewFolder(directory):
 	print(directory)
 	"""Opens a dialog to select a new mod folder"""
 	if directory:
-		if IsValidSearch(directory):
+		if reslotter.IsValidSearch(directory):
 			DisableAutoControls()
 			root.folder_entry.delete(0, END)
 			root.folder_entry.insert(0, directory)
@@ -340,7 +340,7 @@ def OpenNewFolder(directory):
 			
 		else:
 			print(os.listdir(directory))
-			valid_directories = GetValidModsFolders(directory)
+			valid_directories = reslotter.GetValidModsFolders(directory)
 					
 			if len(valid_directories) > 0:
 				DisableManualControls()
@@ -357,7 +357,7 @@ def LoadModFolder(return_error=True, load_data=True):
 	"""Loads the mod folder specified in the text entry"""
 	directory = root.folder_entry.get()
 	if directory and os.path.isdir(directory):
-		#if IsValidSearch(directory): # Not needed as we never get here without this check before hand
+		#if reslotter.IsValidSearch(directory): # Not needed as we never get here without this check before hand
 		root.searchDir = directory
 		config.set("DEFAULT", "searchDir", directory)
 		with open('config.ini', 'w+') as configfile:
@@ -902,25 +902,7 @@ def main(args):
 	RefreshMainWindow()
 	OpenNewFolder(root.searchDir)
 
-#make sure that it is a validated search folder, otherwise quit
-def IsValidSearch(searchDir):
-	if (not os.path.isdir(searchDir)):
-		return False
-	whitelist = ["fighter","sound","ui"]
-	subfolders = [f.path for f in os.scandir(searchDir) if f.is_dir()]
-	for dirname in list(subfolders):
-		for w in list(whitelist):
-			folderName = os.path.basename(dirname) 
-			if (folderName.lower() == w.lower()):
-				return True
-	return False
 
-def GetValidModsFolders(directory):
-	valid_directories = []
-	for directory_loaded in os.listdir(directory):
-		if IsValidSearch(os.path.join(directory, directory_loaded)):
-			valid_directories.append(os.path.join(directory, directory_loaded))
-	return valid_directories
 
 def GetSlotsFromFolder(folder):
 	foundSlots = []

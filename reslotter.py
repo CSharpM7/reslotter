@@ -399,6 +399,26 @@ def main(mod_directory, hashes_file, fighter_name, current_alt, target_alt, shar
     with open(newConfigLocation, 'w+', encoding='utf-8') as f:
         json.dump(resulting_config, f, ensure_ascii=False, indent=4)
 
+#make sure that it is a validated search folder, otherwise quit
+def IsValidSearch(searchDir):
+	if (not os.path.isdir(searchDir)):
+		return False
+	whitelist = ["fighter","sound","ui"]
+	subfolders = [f.path for f in os.scandir(searchDir) if f.is_dir()]
+	for dirname in list(subfolders):
+		for w in list(whitelist):
+			folderName = os.path.basename(dirname) 
+			if (folderName.lower() == w.lower()):
+				return True
+	return False
+
+def GetValidModsFolders(directory):
+	valid_directories = []
+	for directory_loaded in os.listdir(directory):
+		if IsValidSearch(os.path.join(directory, directory_loaded)):
+			valid_directories.append(os.path.join(directory, directory_loaded))
+	return valid_directories
+
 def init(hashes_file, mod_directory, newConfig):
     # load dir_info_with_files_trimmed.json for dir addition config gen
     global dirs_data
