@@ -757,6 +757,8 @@ def RenameUI(targetFolder,fighter_name,newname):
 					fighter_keys = ["eflame_first","eflame_only"]
 				elif (fighter_name=="elight"):
 					fighter_keys = ["elight_first","elight_only"]
+				if (fighter_name=="koopa" or fighter_name=="koopag"):
+					fighter_keys = ["koopa","koopag"]
 
 				for oldname in fighter_keys:
 					file = os.path.join(dirpath,filename)

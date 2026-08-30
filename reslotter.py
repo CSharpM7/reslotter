@@ -70,6 +70,8 @@ def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, 
                     fighter_keys = ["eflame_first","eflame_only"]
                 elif (fighter_name=="elight"):
                     fighter_keys = ["elight_first","elight_only"]
+                elif (fighter_name=="koopa" or fighter_name=="koopag"):
+                    fighter_keys = ["koopa","koopag"]
 
                 for key in fighter_keys:
                     if new_file.__contains__("_" + key + "_") and out_dir != "":
