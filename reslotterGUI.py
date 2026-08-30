@@ -783,9 +783,9 @@ def SubCall(fighters, onlyConfig, sources, targets, shares, exclude, clone):
 			)
 		if (res != "yes" and res != "no"):
 			return
-		reslotter.init(root.hashes, root.searchDir, res == 'yes')
+		reslotter.init(root.hashes, root.searchDir, root.targetDir, res == 'yes')
 	else:
-		reslotter.init(root.hashes, root.searchDir, onlyConfig)
+		reslotter.init(root.hashes, root.searchDir, root.targetDir, onlyConfig)
 
 	succeeded = False
 	

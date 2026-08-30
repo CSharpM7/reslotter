@@ -1,10 +1,9 @@
 #Original code by BluJay <https://github.com/blu-dev> and Jozz <https://github.com/jozz024/ssbu-skin-reslotter>
 #Modified by Coolsonickirby to get it to work with dir addition
-import os
-import shutil
-import sys
-import json
-import re
+import os, shutil, sys, json, re, copy
+
+
+ignore_config_slots = []
 
 def usage():
     print("usage: python reslotter.py <mod_directory> <hashes_file> <fighter_name> <current_alt> <target_alt> <share_slot> <out_directory>")
@@ -77,6 +76,8 @@ def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, 
                     if new_file.__contains__("_" + key + "_") and out_dir != "":
                         makeDirsFromFile(os.path.join(out_dir, new_file))
                         shutil.copy(os.path.join(mod_directory, file), os.path.join(out_dir, new_file))
+                        if out_dir == mod_directory: os.remove(os.path.join(mod_directory, file))
+
                 continue
 
             # Since each directory has a different structure, we have to go through each directory separately
@@ -100,6 +101,7 @@ def reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, 
 
             makeDirsFromFile(os.path.join(out_dir, new_file))
             shutil.copy(os.path.join(mod_directory, file), os.path.join(out_dir, new_file))
+            if out_dir == mod_directory: shutil.rmtree(os.path.join(mod_directory, file))
 
             #Prevent duplicates
             reslotted_files.append(new_file)
@@ -256,7 +258,7 @@ def add_new_slot(dir_info, source_slot, new_slot, share_slot):
             resulting_config["new-dir-infos"].append(new_slot_dir_path)
 
         # Deal with files
-        addFilesToDirInfo(new_slot_dir_path, share_slot_dir["files"], new_slot)
+        addFilesToDirInfo(new_slot_dir_path, share_slot_dir["files"], source_slot, new_slot)
         addSharedFiles(share_slot_dir["files"], source_slot, new_slot,share_slot)
 
         for dir in source_slot_dir["directories"]:
@@ -278,7 +280,7 @@ def add_new_slot(dir_info, source_slot, new_slot, share_slot):
                 resulting_config["new-dir-infos"].append(new_slot_dir_path)
 
             # Deal with files
-            addFilesToDirInfo(new_slot_dir_path, share_slot_dir["files"], new_slot)
+            addFilesToDirInfo(new_slot_dir_path, share_slot_dir["files"], source_slot, new_slot)
             addSharedFiles(share_slot_dir["files"], source_slot, new_slot,share_slot)
 
             # Deal with directories
@@ -289,7 +291,8 @@ def add_new_slot(dir_info, source_slot, new_slot, share_slot):
                 resulting_config["new-dir-infos-base"][new_slot_base] = share_slot_base
 
 
-def addFilesToDirInfo(dir_info, files, target_color):
+def addFilesToDirInfo(dir_info, files, source_slot, target_color):
+    global ignore_config_slots
     if dir_info not in resulting_config["new-dir-files"]:
         resulting_config["new-dir-files"][dir_info] = []
 
@@ -298,9 +301,12 @@ def addFilesToDirInfo(dir_info, files, target_color):
         if file_path.startswith("0x"):
             continue
         new_file_path = re.sub(r"c0[0-9]", target_color, file_path, 1)
-        if new_file_path in resulting_config["new-dir-files"][dir_info]:
-            continue
-        resulting_config["new-dir-files"][dir_info].append(new_file_path)
+        if new_file_path not in resulting_config["new-dir-files"][dir_info]:
+            resulting_config["new-dir-files"][dir_info].append(new_file_path)
+        
+        if source_slot not in ignore_config_slots:
+            if file_path in resulting_config["new-dir-files"][dir_info]:
+                resulting_config["new-dir-files"][dir_info].pop(file_path)
 
 def IsShareableSound(sound_file):
     # Ahora devolvemos True para todos los archivos de sonido
@@ -362,19 +368,57 @@ def RecursiveRewrite(info,current_alt,target_alt):
     print(info.replace(current_alt,target_alt))
     return info.replace(current_alt,target_alt)
 
-def main(mod_directory, hashes_file, fighter_name, current_alt, target_alt, share_slot, out_dir, config_exists=False):
+def cull_config(character, old_slot):
+    global ignore_config_slots, resulting_config
+    if old_slot not in ignore_config_slots:
+        temp_config = copy.deepcopy(resulting_config)
+
+        if "new-dir-infos" in resulting_config.keys():
+            for config_item in resulting_config["new-dir-infos"]:
+                if character in config_item and old_slot in config_item:
+                    temp_config["new-dir-infos"].remove(config_item)
+        
+        if "new-dir-infos-base" in resulting_config.keys():
+            for config_item in resulting_config["new-dir-infos-base"].keys():
+                if character in config_item and old_slot in config_item:
+                    temp_config["new-dir-infos-base"].pop(config_item)
+        if "share-to-vanilla" in resulting_config.keys():
+            for config_key in resulting_config["share-to-vanilla"]:
+                if character in config_key:
+                    for config_item in resulting_config["share-to-vanilla"][config_key]:
+                        if character in config_item and old_slot in config_item:
+                            temp_config["share-to-vanilla"][config_key].remove(config_item)
+        if "new-dir-files" in resulting_config.keys():
+            for config_item in resulting_config["new-dir-files"].keys():
+                if character in config_item and old_slot in config_item:
+                    temp_config["new-dir-files"].pop(config_item)
+        if "share-to-added" in resulting_config.keys():
+            for config_key in resulting_config["share-to-added"]:
+                if character in config_key:
+                    for config_item in resulting_config["share-to-added"][config_key]:
+                        if character in config_item and old_slot in config_item:
+                            temp_config["share-to-added"][config_key].remove(config_item)
+        resulting_config = copy.deepcopy(temp_config)
+
+
+def main(mod_directory, hashes_file, fighter_name, current_alt, target_alt, share_slot, out_dir, config_exists=False, ignore_config_slots_list=[]):
+    global ignore_config_slots
+    ignore_config_slots = ignore_config_slots_list
     # get all of the files the mod modifies
     # fighter_files is already loaded in init()
+    #out_dir = mod_directory
+
+    #print(f"{mod_directory} {hashes_file} {fighter_name} {current_alt} {target_alt} {share_slot} {out_dir} {config_exists}")
 
     try:
         fighter_files
     except NameError:
-        init(hashes_file, mod_directory, config_exists)
+        init(hashes_file, mod_directory, out_dir, config_exists)
     
     # make the out directory if it doesn't exist
     if (not os.path.exists(out_dir)) and out_dir!="":
         os.mkdir(out_dir)
-        
+    
 
     reslotted_files, new_fighter_files = reslot_fighter_files(mod_directory, fighter_files, current_alt, target_alt, share_slot, out_dir, fighter_name)
     
@@ -396,7 +440,7 @@ def main(mod_directory, hashes_file, fighter_name, current_alt, target_alt, shar
         # Replace the original dictionary with the ordered one
         resulting_config["new-dir-files"] = ordered_new_dir_files
     
-    
+    cull_config(fighter_name, current_alt)
     newConfigLocation = (out_dir if out_dir != "" else mod_directory) + '/config.json'
     with open(newConfigLocation, 'w+', encoding='utf-8') as f:
         json.dump(resulting_config, f, ensure_ascii=False, indent=4)
@@ -472,6 +516,7 @@ def init(hashes_file, mod_directory, out_dir, newConfig):
     }
     
     # If there's an existing configuration, load it but maintain the desired order
+    print("newConfig", newConfig)
     if (not newConfig):
         resulting_config = load_config(out_dir, load_config(mod_directory, existing_config))
     
@@ -490,7 +535,10 @@ if __name__ == "__main__":
         if len(sys.argv) > 8 and (sys.argv[8].lower() == "true"):
             use_config = True
         else: use_config = False
-                
-        main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6], sys.argv[7], use_config)
+        if len(sys.argv) > 9 and ("[" in sys.argv[9] and "]" in sys.argv[9]):
+            ignore_slots = eval(sys.argv[9])
+        else: ignore_slots = []
+
+        main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6], sys.argv[7], use_config, ignore_slots)
     except IndexError:
         usage()
