@@ -421,7 +421,32 @@ def GetValidModsFolders(directory):
 			valid_directories.append(os.path.join(directory, directory_loaded))
 	return valid_directories
 
-def init(hashes_file, mod_directory, newConfig):
+def load_config(directory, existing_config):
+    existing_config_file = os.path.join(directory, "config.json")
+    if (os.path.isfile(existing_config_file)):
+        try:
+            with open(existing_config_file, "r", encoding='utf-8') as f:
+                config = json.load(f)
+                # Maintain the correct order of sections
+                if "new-dir-infos" in config:
+                    existing_config["new-dir-infos"] += config["new-dir-infos"]
+                if "new-dir-infos-base" in config:
+                    existing_config["new-dir-infos-base"].update(config["new-dir-infos-base"])
+                if "share-to-vanilla" in config:
+                    existing_config["share-to-vanilla"].update(config["share-to-vanilla"])
+                if "new-dir-files" in config:
+                    existing_config["new-dir-files"].update(config["new-dir-files"])
+                if "share-to-added" in config:
+                    existing_config["share-to-added"].update(config["share-to-added"])
+                f.close()
+        except Exception as e:
+            print(f"Error loading config.json: {e}")
+            # If there's an error, use the default configuration
+            pass
+    return existing_config
+
+
+def init(hashes_file, mod_directory, out_dir, newConfig):
     # load dir_info_with_files_trimmed.json for dir addition config gen
     global dirs_data
     global file_array
@@ -448,29 +473,7 @@ def init(hashes_file, mod_directory, newConfig):
     
     # If there's an existing configuration, load it but maintain the desired order
     if (not newConfig):
-        existing_config_file = mod_directory + "/config.json"
-        if (os.path.isfile(existing_config_file)):
-            try:
-                with open(existing_config_file, "r", encoding='utf-8') as f:
-                    config = json.load(f)
-                    # Maintain the correct order of sections
-                    if "new-dir-infos" in config:
-                        existing_config["new-dir-infos"] = config["new-dir-infos"]
-                    if "new-dir-infos-base" in config:
-                        existing_config["new-dir-infos-base"] = config["new-dir-infos-base"]
-                    if "share-to-vanilla" in config:
-                        existing_config["share-to-vanilla"] = config["share-to-vanilla"]
-                    if "new-dir-files" in config:
-                        existing_config["new-dir-files"] = config["new-dir-files"]
-                    if "share-to-added" in config:
-                        existing_config["share-to-added"] = config["share-to-added"]
-                    f.close()
-            except Exception as e:
-                print(f"Error loading config.json: {e}")
-                # If there's an error, use the default configuration
-                pass
-
-    resulting_config = existing_config
+        resulting_config = load_config(out_dir, load_config(mod_directory, existing_config))
     
     # Create the list of existing files based on the files in the mod
     existing_files = fighter_files.copy()
