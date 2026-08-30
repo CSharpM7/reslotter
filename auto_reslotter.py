@@ -33,7 +33,13 @@ def main(mods_directory, start_slotting_from):
 
     character_used_slots = {}
 
-    mod_folders = os.listdir(mods_directory)
+    mod_folders = reslotter.GetValidModsFolders(mods_directory)
+
+    temp_mod_folders = []
+
+    for temp_folder in mod_folders:
+        temp_mod_folders.append(temp_folder.split("/")[-1].split("\\")[-1])
+    mod_folders = temp_mod_folders
 
     for mod_folder in mod_folders:
         new_mod_folder = add_slash(mod_folder)
@@ -57,7 +63,7 @@ def main(mods_directory, start_slotting_from):
         for character in characters:
             slots = get_slots(mods_directory+new_mod_folder+internal_folder+add_slash(character), [])
 
-            print(slots)
+            #print(slots)
             new_slots = []
 
             for old_slot_index in range(len(slots)):
@@ -104,24 +110,14 @@ def main(mods_directory, start_slotting_from):
 
                 character_used_slots[character].append(new_slot)
 
-                print(f'"{mods_directory+new_mod_folder.rstrip("/")}" Hashes_all.txt {character} {old_slot} c{new_slot[1:]} {share_slot} "{mods_directory}New {new_mod_folder.rstrip("/")}"')
-
                 process = subprocess.run(['python', 'reslotter.py', mods_directory+new_mod_folder.rstrip("/"), "Hashes_all.txt", character, old_slot, "c"+new_slot[1:], share_slot, f"{mods_directory}New {new_mod_folder.rstrip('/')}"])
                 # subprocess used instead to ensure cache is cleared between runs. Without this each subsequent run of the same character fails
 
                 #reslotter.main(mods_directory+new_mod_folder.rstrip("/"), "Hashes_all.txt", character, old_slot, "c"+new_slot[1:], share_slot, f"{mods_directory}New {new_mod_folder.rstrip('/')}")
+                
                 to_remove.append(new_mod_folder)
-                if old_slot_index <= len(slots)-1: new_mod_folder = f"New {new_mod_folder}"
                 new_slots.append("c"+str(new_slot)[1:])
-            new_final_name = stored_folder_name
 
-            for i in range(100, 200):
-                new_final_name = new_final_name.replace("c"+str(i)[1:],"").replace("C"+str(i)[1:],"").replace(str(i)[1:],"")
-            new_final_name = f"{character} {' '.join(new_slots)} - {new_final_name}"
-            while new_final_name in os.listdir(mods_directory):
-                new_final_name = "New "+new_final_name
-            shutil.move(mods_directory+new_mod_folder, mods_directory+new_final_name)
-            stored_folder_name = new_final_name
     for remove_me in to_remove:
         for attempt_number in range(10):
             try:
