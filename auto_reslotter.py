@@ -82,9 +82,9 @@ def main(mods_directory, start_slotting_from):
                     available_slots = ["c00", "c01", "c02", "c03", "c04", "c05", "c06", "c07"]
                 elif isinstance(special_default_slots[character], dict):
                     for slot_default in special_default_slots[character].keys():
-                        if old_slot in special_default_slots[special_default_slots][slot_default]:
+                        if old_slot in special_default_slots[character][slot_default]:
                             share_slot = slot_default
-                            available_slots = special_default_slots[special_default_slots][slot_default]
+                            available_slots = special_default_slots[character][slot_default]
                             break
                 else: 
                     share_slot = old_slot
