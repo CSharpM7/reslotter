@@ -110,7 +110,7 @@ def main(mods_directory, start_slotting_from):
 
                 character_used_slots[character].append(new_slot)
 
-                process = subprocess.run(['python', 'reslotter.py', mods_directory+new_mod_folder.rstrip("/"), "Hashes_all.txt", character, old_slot, "c"+new_slot[1:], share_slot, f"{mods_directory}New {new_mod_folder.rstrip('/')}"])
+                process = subprocess.run(['python', 'reslotter.py', mods_directory+new_mod_folder.rstrip("/"), "Hashes_all.txt", character, old_slot, "c"+new_slot[1:], share_slot, f"{mods_directory}New {new_mod_folder.rstrip('/')}", "False", str(new_slots)])
                 # subprocess used instead to ensure cache is cleared between runs. Without this each subsequent run of the same character fails
 
                 #reslotter.main(mods_directory+new_mod_folder.rstrip("/"), "Hashes_all.txt", character, old_slot, "c"+new_slot[1:], share_slot, f"{mods_directory}New {new_mod_folder.rstrip('/')}")
