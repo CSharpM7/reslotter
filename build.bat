@@ -14,3 +14,4 @@ pyinstaller --noconfirm --onefile --console --add-data "dir_info_with_files_trim
 pyinstaller --noconfirm --onefile --console --add-data "moveset_optimizer.py;." "moveset_optimizer_gui.py" --hidden-import PIL --hidden-import numpy
 
 echo Process complete. The executables are in the "dist" folder.
+pause
